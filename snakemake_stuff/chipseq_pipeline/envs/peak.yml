@@ -1,0 +1,5 @@
+name: peak
+channels:
+  - defaults
+dependencies:
+  - python

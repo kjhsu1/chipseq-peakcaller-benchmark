@@ -1,0 +1,49 @@
+# Example configuration generated from pipeline_architecture.pdf
+
+# sweep parameters
+
+# genomes to simulate
+# example values
+# (replace with real genome file names)
+genomes:
+  - genome1.fa
+  - genome2.fa
+
+# read coverage depths
+coverage:
+  - 1
+  - 5
+
+# number of peaks to insert
+num_peaks:
+  - 1
+  - 2
+
+# peak tallness multipliers
+peak_tallness:
+  - 10
+  - 100
+
+# peak broadness values
+peak_broadness:
+  - 10
+  - 100
+
+# fragment lengths
+fragment_length:
+  - 150
+
+# alignment tools
+aligners:
+  - bowtie2
+  - bwa-mem
+
+# peak callers
+peakcallers:
+  - macs2
+  - epic2
+
+# placeholder dictionaries to be filled in by user
+indexes: {}
+
+genome_size: {}
