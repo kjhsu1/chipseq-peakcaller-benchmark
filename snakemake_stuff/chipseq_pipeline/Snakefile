@@ -1,0 +1,48 @@
+"""Master Snakefile for sweeping CHIP-seq simulations"""
+
+import glob
+for _rule in glob.glob("rules/*.smk"):
+    include: _rule
+
+configfile: "snakemake_stuff/chipseq_pipeline/config.yaml"
+
+import itertools
+import yaml
+import os
+
+config = workflow.config
+
+params_product = list(itertools.product(
+    config["genomes"],
+    config["aligners"],
+    config["peakcallers"],
+    config["coverage"],
+    config["num_peaks"],
+    config["peak_tallness"],
+    config["peak_broadness"],
+    config["fragment_length"]
+))
+
+SAMPLES = []
+for i,p in enumerate(params_product):
+    genome, aligner, peakcaller, cov, nump, tall, broad, frag = p
+    SAMPLES.append({
+        "genome": genome,
+        "aligner": aligner,
+        "peakcaller": peakcaller,
+        "coverage": cov,
+        "num_peaks": nump,
+        "peak_tallness": tall,
+        "peak_broadness": broad,
+        "fragment_length": frag,
+        "id": i
+    })
+
+
+rule all:
+    input:
+        expand(
+            "peaks/{genome}/{aligner}/{peakcaller}/{id}/peaks.bed",
+            **s
+        ) for s in SAMPLES
+

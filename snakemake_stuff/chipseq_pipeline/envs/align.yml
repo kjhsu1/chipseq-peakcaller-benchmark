@@ -1,0 +1,5 @@
+name: align
+channels:
+  - defaults
+dependencies:
+  - python
