@@ -4,7 +4,7 @@ import glob
 for _rule in glob.glob("rules/*.smk"):
     include: _rule
 
-configfile: "snakemake_stuff/chipseq_pipeline/config.yaml"
+configfile: "Kenta_Stuff/chipseq_pipeline/config.yaml"
 
 import itertools
 import yaml

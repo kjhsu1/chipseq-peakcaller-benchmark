@@ -1,5 +1,8 @@
 name: peak
 channels:
+  - conda-forge
+  - bioconda
   - defaults
 dependencies:
   - python
+  - macs2
