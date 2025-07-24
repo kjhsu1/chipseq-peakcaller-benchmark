@@ -9,6 +9,9 @@ dependencies:
   - hydra-core
   - mlflow
   - pandas
+  - numpy
+  - scipy
+  - statsmodels
   - bowtie2
   - samtools
   - macs2
