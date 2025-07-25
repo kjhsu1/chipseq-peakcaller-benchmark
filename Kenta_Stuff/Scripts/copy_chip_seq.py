@@ -64,8 +64,8 @@ parser.add_argument('--acc_weight', type=float, default=1.0,
     help='Weight multiplier for accessible regions')
 parser.add_argument('--gc_bias_params', type=str, default=None,
     help='CSV file for GC bias lookup table')
-parser.add_argument('--seed', type=int, default=42,
-    help='Random seed for reproducible TF peak placement')
+parser.add_argument('--seed', type=int, default=None,
+    help='Random seed for reproducible peak generation')
 
 args, _ = parser.parse_known_args()
 
@@ -83,6 +83,10 @@ accessibility_bed = args.accessibility_bed
 acc_weight = args.acc_weight
 gc_bias_params = args.gc_bias_params
 seed = args.seed
+
+if seed is not None:
+    random.seed(seed)
+    np.random.seed(seed)
 
 
 '''
