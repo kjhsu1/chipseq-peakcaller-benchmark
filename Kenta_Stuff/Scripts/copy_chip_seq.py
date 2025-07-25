@@ -99,6 +99,10 @@ ___________________
 - variance: pmf * (1 - pmf)
 """
 
+if seed is not None:
+    random.seed(seed)
+    np.random.seed(seed)
+
 
 '''
 Notes for random_genome_1.fa.gz:
