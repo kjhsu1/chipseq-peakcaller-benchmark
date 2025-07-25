@@ -4,11 +4,13 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
+sys.argv = ['prog', '--output_fasta', 'dummy.fa']
 from Kenta_Stuff.Scripts import copy_chip_seq as cs
 
 
 def test_bias_pmfs():
     seq = 'ACGTACGTACGT'
+    cs.k = 4
     length = len(seq) - cs.k + 1
     tf_bias = cs.build_tf_bias_pmf(length, [2, 6], sigma=1.0, enrichment=0.5)
     assert tf_bias.shape[0] == length
