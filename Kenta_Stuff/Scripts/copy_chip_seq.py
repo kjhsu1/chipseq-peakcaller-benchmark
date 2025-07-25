@@ -64,8 +64,10 @@ parser.add_argument('--acc_weight', type=float, default=1.0,
     help='Weight multiplier for accessible regions')
 parser.add_argument('--gc_bias_params', type=str, default=None,
     help='CSV file for GC bias lookup table')
-parser.add_argument('--seed', type=int, default=None,
-    help='Random seed for reproducible peak generation')
+parser.add_argument('--seed', type=int, default=42,
+    help='Random seed for reproducible TF peak placement')
+parser.add_argument('--pmf_csv', type=str, default=None,
+    help='Path to CSV file storing PMF and variance per bin')
 
 args, _ = parser.parse_known_args()
 
@@ -83,6 +85,19 @@ accessibility_bed = args.accessibility_bed
 acc_weight = args.acc_weight
 gc_bias_params = args.gc_bias_params
 seed = args.seed
+pmf_csv = args.pmf_csv
+
+if not pmf_csv and fasta:
+    base = os.path.splitext(os.path.basename(fasta))[0]
+    pmf_csv = f'{base}_pmf.csv'
+
+"""PMF CSV Structure
+___________________
+
+- bin_idx: zero-based index of fragment start bin
+- pmf: probability assigned to the bin
+- variance: pmf * (1 - pmf)
+"""
 
 if seed is not None:
     random.seed(seed)
@@ -243,6 +258,23 @@ def create_pmf_all_chroms(fasta, peak_broadness, tallness):
         genome_pmfs[chrom_id] = pmf.tolist()
     return genome_pmfs
 
+def pmf_variance(pmf: List[float]) -> List[float]:
+    """Return variance for each bin assuming Bernoulli trials."""
+    arr = np.asarray(pmf, dtype=float)
+    var = arr * (1 - arr)
+    return var.tolist()
+
+def write_pmf_csv(genome_pmfs: Dict[str, List[float]], path: str) -> None:
+    """Write PMF and variance arrays to CSV."""
+    rows = []
+    for pmf in genome_pmfs.values():
+        arr = np.asarray(pmf, dtype=float)
+        var = arr * (1 - arr)
+        for idx, (p, v) in enumerate(zip(arr, var)):
+            rows.append((idx, p, v))
+    df = pd.DataFrame(rows, columns=['bin_idx', 'pmf', 'variance'])
+    df.to_csv(path, index=False)
+
 def chrom_bias(fasta):
     """
     Find the sampling bias for each chrom based on length relative to the sum total of genomic bps
@@ -400,6 +432,8 @@ Below code will print the FASTA for the reads generated from experiment
 
 if fasta:
     genome_pmf = create_pmf_all_chroms(fasta, peak_broadness, tallness)
+    if pmf_csv:
+        write_pmf_csv(genome_pmf, pmf_csv)
     exp = sample_genome(fasta, genome_pmf)
     # print(json.dumps(genome_pmf, indent=4)) # for debugging
     # print(json.dumps(exp, indent=4)) # for debugging
