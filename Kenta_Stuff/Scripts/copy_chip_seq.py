@@ -73,6 +73,8 @@ parser.add_argument('--nb_k', type=float, default=10.0,
     help='Inverse-dispersion (size) parameter k for negative-binomial noise; smaller k ⇒ more variance.')
 parser.add_argument('--output_fasta', required=True,
     help='Path to write paired-end reads in FASTA format.')
+parser.add_argument('--pmf_csv', type=str, default=None,
+    help='Path to CSV file storing PMF and variance per bin')
 
 args, _ = parser.parse_known_args()
 
@@ -93,6 +95,23 @@ seed = args.seed
 read_length = args.read_length
 nb_k = args.nb_k
 output_fasta = args.output_fasta
+pmf_csv = args.pmf_csv
+
+if not pmf_csv and fasta:
+    base = os.path.splitext(os.path.basename(fasta))[0]
+    pmf_csv = f'{base}_pmf.csv'
+
+"""PMF CSV Structure
+___________________
+
+- bin_idx: zero-based index of fragment start bin
+- pmf: probability assigned to the bin
+- variance: pmf * (1 - pmf)
+"""
+
+if seed is not None:
+    random.seed(seed)
+    np.random.seed(seed)
 
 
 '''
@@ -255,6 +274,23 @@ def create_pmf_all_chroms(fasta, peak_broadness, tallness):
         genome_pmfs[chrom_id] = pmf.tolist()
     return genome_pmfs
 
+def pmf_variance(pmf: List[float]) -> List[float]:
+    """Return variance for each bin assuming Bernoulli trials."""
+    arr = np.asarray(pmf, dtype=float)
+    var = arr * (1 - arr)
+    return var.tolist()
+
+def write_pmf_csv(genome_pmfs: Dict[str, List[float]], path: str) -> None:
+    """Write PMF and variance arrays to CSV."""
+    rows = []
+    for pmf in genome_pmfs.values():
+        arr = np.asarray(pmf, dtype=float)
+        var = arr * (1 - arr)
+        for idx, (p, v) in enumerate(zip(arr, var)):
+            rows.append((idx, p, v))
+    df = pd.DataFrame(rows, columns=['bin_idx', 'pmf', 'variance'])
+    df.to_csv(path, index=False)
+
 def chrom_bias(fasta):
     """
     Find the sampling bias for each chrom based on length relative to the sum total of genomic bps
@@ -412,9 +448,13 @@ if fasta:
     if read_length > k:
         raise ValueError('read_length must not exceed fragment_length')
     genome_pmf = create_pmf_all_chroms(fasta, peak_broadness, tallness)
+    
     paired_reads, nb_counts = sample_genome(fasta, genome_pmf)
     write_paired_fasta(paired_reads, output_fasta)
     
+    if pmf_csv:
+        write_pmf_csv(genome_pmf, pmf_csv)
+
     '''
     uncomment both to compare pmf graph with actual experiment graph
     NOTE: x-axis for pmf is not base coordinate for all bases in genome, rather base coordinates for first base of kmer/fragment
