@@ -19,7 +19,7 @@ import pandas as pd
 from scipy.stats import norm
 from statsmodels.nonparametric.smoothers_lowess import lowess
 
-import LIB
+from . import LIB
 import json
 import argparse
 
@@ -42,7 +42,7 @@ ________________
 parser = argparse.ArgumentParser(
     description="CHIP-seq Experiment Simulator with bias modeling"
 )
-parser.add_argument('--fasta', type=str, required=True,
+parser.add_argument('--fasta', type=str, required=False, default='',
     help='Path to the FASTA file')
 parser.add_argument('--coverage', type=float, default=1.0,
     help='Coverage depth to simulate')
@@ -50,7 +50,7 @@ parser.add_argument('--num_bg_peaks', type=int, default=1,
     help='Number of random background peaks to add')
 parser.add_argument('--num_fg_peaks', type=int, default=1,
     help='Number of random foreground peaks to add')
-parser.add_argument('--fragment_length', type=int, default=20,
+parser.add_argument('--fragment_length', type=int, default=4,
     help='The fragment length of each read (k-mer size); usually between 100=500bp')
 parser.add_argument('--peak_broadness', type=int, default=9,
     help='Number of bins that make up each peak')
@@ -69,7 +69,7 @@ parser.add_argument('--gc_bias_params', type=str, default=None,
 parser.add_argument('--seed', type=int, default=42,
     help='Random seed for reproducible TF peak placement')
 
-args = parser.parse_args()
+args, _ = parser.parse_known_args()
 
 # this particular genome has 3 chroms, chr1, chr2, chr3, with lengths 100, 200, 300 respectively
 fasta = args.fasta
@@ -416,23 +416,24 @@ def graph_experiment(exp, genome_pmf):
         plt.title(f'Base Distribution in Sample: {chrom}')
         plt.show()
 
-'''
+"""
 Below code will print the FASTA for the reads generated from experiment
-'''
+"""
 
-genome_pmf = create_pmf_all_chroms(fasta, peak_broadness, tallness)
-exp = sample_genome(fasta, genome_pmf)
-# print(json.dumps(genome_pmf, indent=4)) # for debugging
-# print(json.dumps(exp, indent=4)) # for debugging
-sample_to_fasta(exp, fasta)
+if fasta:
+    genome_pmf = create_pmf_all_chroms(fasta, peak_broadness, tallness)
+    exp = sample_genome(fasta, genome_pmf)
+    # print(json.dumps(genome_pmf, indent=4)) # for debugging
+    # print(json.dumps(exp, indent=4)) # for debugging
+    sample_to_fasta(exp, fasta)
 
-'''
-uncomment both to compare pmf graph with actual experiment graph
-NOTE: x-axis for pmf is not base coordinate for all bases in genome, rather base coordinates for first base of kmer/fragment
-'''
+    '''
+    uncomment both to compare pmf graph with actual experiment graph
+    NOTE: x-axis for pmf is not base coordinate for all bases in genome, rather base coordinates for first base of kmer/fragment
+    '''
 
-# graph_all_genome_pmf(genome_pmf)
-# graph_experiment(exp, genome_pmf)
+    # graph_all_genome_pmf(genome_pmf)
+    # graph_experiment(exp, genome_pmf)
 
 
 
