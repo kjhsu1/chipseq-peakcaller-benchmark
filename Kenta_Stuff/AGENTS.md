@@ -13,6 +13,7 @@
 	- ex. """Functions"""
 - Use one line docstring for functions and explain input and output if complex
 - Use argparse to get user arguments
+- Never add dunder name/main checks ("if __name__ == '__main__'") unless explicitly requested
 
 # Interaction Instructions
 - Always ask clarifying questions if unsure
