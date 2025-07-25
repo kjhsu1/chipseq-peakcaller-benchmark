@@ -7,20 +7,15 @@ This program will print FASTA of reads generated based on user defined arguments
 
 """Imports"""
 
-import sys
 import random
 import os
 from typing import List, Dict
 
-import matplotlib.pyplot as plt
 import numpy as np
-import numpy
 import pandas as pd
 from scipy.stats import norm
-from statsmodels.nonparametric.smoothers_lowess import lowess
 
 from . import LIB
-import json
 import argparse
 
 
@@ -172,13 +167,6 @@ def normalize_bins(pmf):
         pmf[i] = (pmf[i]/total)
     return pmf
 
-def sample_from_bins(pmf, num_sample):
-    """
-    Takes in a bins pmf, and samples num_sample times from the distribution.
-    """
-    bins_indices = list(range(len(pmf))) # ex. range(3) = [0, 1, 2]
-    samples = random.choices(bins_indices, weights=pmf, k=num_sample)
-    return samples
 
 def build_tf_bias_pmf(length: int, peaks: List[int], sigma: float,
                       enrichment: float) -> np.ndarray:
@@ -274,11 +262,6 @@ def create_pmf_all_chroms(fasta, peak_broadness, tallness):
         genome_pmfs[chrom_id] = pmf.tolist()
     return genome_pmfs
 
-def pmf_variance(pmf: List[float]) -> List[float]:
-    """Return variance for each bin assuming Bernoulli trials."""
-    arr = np.asarray(pmf, dtype=float)
-    var = arr * (1 - arr)
-    return var.tolist()
 
 def write_pmf_csv(genome_pmfs: Dict[str, List[float]], path: str) -> None:
     """Write PMF and variance arrays to CSV."""
@@ -329,7 +312,7 @@ def sample_genome(fasta, genome_pmfs):
             continue
         pmf = np.array(pmf_list, dtype=float)
         expected_counts = pmf * (chrom_bias[chrom_id] * total_reads)
-        nb_counts = numpy.random.negative_binomial(
+        nb_counts = np.random.negative_binomial(
             n=nb_k,
             p=nb_k / (nb_k + expected_counts)
         )
@@ -355,94 +338,7 @@ def write_paired_fasta(paired_reads, output_path):
             fh.write(f">read_{i:06d}/1\n{r1}\n")
             fh.write(f">read_{i:06d}/2\n{r2}\n")
 
-"""
-Functions for Debugging/Checking
-_______________________
-"""
-
-def total_num_reads(exp_sample):
-    """
-    Get total number of reads from a sampling experiment
-    """
-    read_sum = 0
-    for chrom in exp_sample:
-        read_sum += len(exp_sample[chrom])
-    return read_sum
-
-def chrom_distribution(exp_sample):
-    """
-    Get distribution of chromosomes in a sampling experiment
-
-    WILL NOT RETURN VALUE, WILL JUST PRINT
-    """
-    total = total_num_reads(exp_sample)
-    dict = {}
-    for chrom in exp_sample:
-        chrom_total = len(exp_sample[chrom])
-        dict[chrom] = chrom_total / total
-    print('Experimental Distribution', '\n',json.dumps(dict, indent=4))
-    
-    # can compare with expected distribution
-    c_bias = chrom_bias(fasta)
-    print('Expected Distribution', '\n', json.dumps(c_bias, indent=4))
-
-def graph_pmf(pmf, title="Experimental P.M.F"):
-    """
-    Graphs the P.M.F
-    """
-    bin_coords = range(len(pmf))
-    probs = pmf
-
-    plt.figure()
-    plt.plot(bin_coords, probs)
-    plt.xlabel('Read/K-mer index')
-    plt.ylabel('Probability')
-    plt.title(title)
-    plt.show()
-
-def graph_all_genome_pmf(genome_pmf):
-    for chrom in genome_pmf.keys():
-        pmf = genome_pmf[chrom]
-        graph_pmf(pmf, title=f'P.M.F for Experimental, {chrom}')
-
-def graph_experiment(exp, genome_pmf):
-    """
-    Graph the sample base distribution
-    """
-    # initialize dict to track number of samples
-    sample_distribution = {}
-    for chrom in genome_pmf.keys():
-        sample_distribution[chrom] = {}
-        for i in range(len(genome_pmf[chrom]) + k-1):
-            sample_distribution[chrom][i] = 0
-
-    # print(json.dumps(sample_distribution, indent=4)) # debug
-
-    # count each sample
-    for chrom in exp.keys():
-        samples = exp[chrom]
-        for sample in samples:
-            for base in sample:
-                sample_distribution[chrom][base] += 1
-
-    # print(json.dumps(sample_distribution, indent=4)) # debug
-    
-    # graph each chrom
-    for chrom in sample_distribution.keys():
-        x = list(sample_distribution[chrom].keys())
-        y = list(sample_distribution[chrom].values())
-        # print(x) # debug
-        # print(y) #debug
-        plt.figure()
-        plt.plot(x, y)
-        plt.xlabel('Base Coordinate')
-        plt.ylabel('Counts')
-        plt.title(f'Base Distribution in Sample: {chrom}')
-        plt.show()
-
-"""
-Below code will print the FASTA for the reads generated from experiment
-"""
+"""Below code will print the FASTA for the reads generated from experiment"""
 
 if fasta:
     if read_length > k:
