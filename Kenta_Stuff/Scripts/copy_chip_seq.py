@@ -9,7 +9,6 @@ This program will print FASTA of reads generated based on user defined arguments
 
 import sys
 import random
-import logging
 import os
 from typing import List, Dict
 
@@ -23,7 +22,6 @@ from . import LIB
 import json
 import argparse
 
-logging.basicConfig(level=logging.DEBUG)
 
 """
 Assumptions for our Model
@@ -155,15 +153,7 @@ def build_tf_bias_pmf(length: int, peaks: List[int], sigma: float,
     for p in peaks:
         kernel = norm.pdf(positions, loc=p, scale=sigma)
         bias += enrichment * kernel
-    logging.debug(
-        "TF bias pre-normalization stats min=%f max=%f mean=%f",
-        bias.min(), bias.max(), bias.mean()
-    )
     bias /= bias.sum()
-    logging.debug(
-        "TF bias post-normalization stats min=%f max=%f mean=%f",
-        bias.min(), bias.max(), bias.mean()
-    )
     return bias
 
 def build_gc_bias_pmf(sequence: str, loess_params: Dict) -> np.ndarray:
@@ -184,15 +174,7 @@ def build_gc_bias_pmf(sequence: str, loess_params: Dict) -> np.ndarray:
     counts = cumsum[k - 1:] - np.concatenate(([0], cumsum[:-k]))
     gc_percent = counts / k
     bias = np.interp(gc_percent, gc_vals, weights)
-    logging.debug(
-        "GC bias pre-normalization stats min=%f max=%f mean=%f",
-        bias.min(), bias.max(), bias.mean()
-    )
     bias /= bias.sum()
-    logging.debug(
-        "GC bias post-normalization stats min=%f max=%f mean=%f",
-        bias.min(), bias.max(), bias.mean()
-    )
     return bias
 
 def build_accessibility_bias_pmf(length: int, accessibility_bed: str,
@@ -214,15 +196,7 @@ def build_accessibility_bias_pmf(length: int, accessibility_bed: str,
                 start = max(start, 0)
                 end = min(end, length)
                 bias[start:end] *= acc_weight
-    logging.debug(
-        "Accessibility bias pre-normalization stats min=%f max=%f mean=%f",
-        bias.min(), bias.max(), bias.mean()
-    )
     bias /= bias.sum()
-    logging.debug(
-        "Accessibility bias post-normalization stats min=%f max=%f mean=%f",
-        bias.min(), bias.max(), bias.mean()
-    )
     return bias
 
 def create_pmf(chrom_len, num_bg_peaks, num_fg_peaks, k, peak_broadness, tallness):

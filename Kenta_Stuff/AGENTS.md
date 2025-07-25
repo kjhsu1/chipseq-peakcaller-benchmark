@@ -1,6 +1,7 @@
 # Coding Standards
 - Only use the libraries that the codebase already uses. You may use other
   libraries only when explicitly instructed to do so in the prompt.
+- Do not use the logging module or any logging calls unless explicitly directed.
 
 # Environment
 - run command line command, "source", on setup.sh
