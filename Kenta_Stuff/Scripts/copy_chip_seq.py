@@ -179,10 +179,10 @@ def build_tf_bias_pmf(length: int, peaks: List[int], sigma: float,
     bias /= bias.sum()
     return bias
 
-def build_gc_bias_pmf(sequence: str, loess_params: Dict) -> np.ndarray:
+def build_gc_bias_pmf(sequence: str, loess_params: Dict, fragment_length: int) -> np.ndarray:
     """Return normalized GC-content bias PMF."""
     if not loess_params or 'csv' not in loess_params or loess_params['csv'] is None:
-        bias = np.ones(len(sequence) - k + 1, dtype=float)
+        bias = np.ones(len(sequence) - fragment_length + 1, dtype=float)
         bias /= bias.sum()
         return bias
     csv_path = loess_params['csv']
@@ -194,8 +194,8 @@ def build_gc_bias_pmf(sequence: str, loess_params: Dict) -> np.ndarray:
     seq_arr = np.frombuffer(sequence.upper().encode('ascii'), dtype='S1')
     gc_mask = np.isin(seq_arr, [b'G', b'C'])
     cumsum = np.cumsum(gc_mask)
-    counts = cumsum[k - 1:] - np.concatenate(([0], cumsum[:-k]))
-    gc_percent = counts / k
+    counts = cumsum[fragment_length - 1:] - np.concatenate(([0], cumsum[:-fragment_length]))
+    gc_percent = counts / fragment_length
     bias = np.interp(gc_percent, gc_vals, weights)
     bias /= bias.sum()
     return bias
@@ -240,22 +240,43 @@ def create_pmf(chrom_len, num_bg_peaks, num_fg_peaks, k, peak_broadness, tallnes
 
     return pmf
 
-def create_pmf_all_chroms(fasta, peak_broadness, tallness):
+def create_pmf_all_chroms(
+    fasta: str,
+    peak_broadness: int,
+    tallness: int,
+    num_bg_peaks: int,
+    num_fg_peaks: int,
+    fragment_length: int,
+    tf_sigma: float,
+    tf_enrichment: float,
+    accessibility_bed: str,
+    acc_weight: float,
+    seed: int,
+    gc_bias_params: str,
+) -> Dict[str, List[float]]:
     """Build PMF dictionary for all chromosomes with bias modeling."""
+
     genome_pmfs = {}
     rng = np.random.default_rng(seed)
     gc_params = {'csv': gc_bias_params}
     for chrom_id, seq in LIB.read_fasta(fasta):
-        if len(seq) < k:
+        if len(seq) < fragment_length:
             continue
         base = np.array(
-            create_pmf(len(seq), num_bg_peaks, num_fg_peaks, k, peak_broadness, tallness),
+            create_pmf(
+                len(seq),
+                num_bg_peaks,
+                num_fg_peaks,
+                fragment_length,
+                peak_broadness,
+                tallness,
+            ),
             dtype=float,
         )
         length = base.shape[0]
         tf_centers = rng.integers(0, length, size=max(1, num_fg_peaks))
         tf_bias = build_tf_bias_pmf(length, tf_centers.tolist(), tf_sigma, tf_enrichment)
-        gc_bias = build_gc_bias_pmf(seq, gc_params)
+        gc_bias = build_gc_bias_pmf(seq, gc_params, fragment_length)
         acc_bias = build_accessibility_bias_pmf(length, accessibility_bed, acc_weight)
         combined = base * tf_bias * gc_bias * acc_bias
         pmf = combined / combined.sum()
@@ -287,7 +308,14 @@ def chrom_bias(fasta):
         chrom_bias[id] = chrom_bias[id] / total_bp
     return chrom_bias
 
-def sample_genome(fasta, genome_pmfs):
+def sample_genome(
+    fasta: str,
+    genome_pmfs: Dict[str, List[float]],
+    coverage: float,
+    fragment_length: int,
+    read_length: int,
+    nb_k: float,
+) -> (List[tuple], Dict[str, np.ndarray]):
     """Return paired-end reads and negative-binomial counts."""
 
     chrom_bias = {}
@@ -295,14 +323,14 @@ def sample_genome(fasta, genome_pmfs):
     total_bp = 0
     for chrom_id, seq in LIB.read_fasta(fasta):
         seqs[chrom_id] = seq
-        if len(seq) < k:
+        if len(seq) < fragment_length:
             continue
         total_bp += len(seq)
         chrom_bias[chrom_id] = len(seq)
     for cid in chrom_bias:
         chrom_bias[cid] /= total_bp
 
-    total_reads = int((total_bp * coverage) / k)
+    total_reads = int((total_bp * coverage) / fragment_length)
 
     paired_reads = []
     nb_counts_dict = {}
@@ -321,7 +349,7 @@ def sample_genome(fasta, genome_pmfs):
         for start_idx, count in enumerate(nb_counts):
             for _ in range(int(count)):
                 frag_start = start_idx
-                frag_end = frag_start + k - 1
+                frag_end = frag_start + fragment_length - 1
                 r1_seq = seq[frag_start: frag_start + read_length]
                 r2_seq = reverse_complement(
                     seq[frag_end - read_length + 1: frag_end + 1]
@@ -343,9 +371,29 @@ def write_paired_fasta(paired_reads, output_path):
 if fasta:
     if read_length > k:
         raise ValueError('read_length must not exceed fragment_length')
-    genome_pmf = create_pmf_all_chroms(fasta, peak_broadness, tallness)
-    
-    paired_reads, nb_counts = sample_genome(fasta, genome_pmf)
+    genome_pmf = create_pmf_all_chroms(
+        fasta,
+        peak_broadness,
+        tallness,
+        num_bg_peaks,
+        num_fg_peaks,
+        k,
+        tf_sigma,
+        tf_enrichment,
+        accessibility_bed,
+        acc_weight,
+        seed,
+        gc_bias_params,
+    )
+
+    paired_reads, nb_counts = sample_genome(
+        fasta,
+        genome_pmf,
+        coverage,
+        k,
+        read_length,
+        nb_k,
+    )
     write_paired_fasta(paired_reads, output_fasta)
     
     if pmf_csv:
