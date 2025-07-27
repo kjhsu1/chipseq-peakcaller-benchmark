@@ -40,10 +40,8 @@ parser.add_argument('--fasta', type=str, required=False, default='',
     help='Path to the FASTA file')
 parser.add_argument('--coverage', type=float, default=1.0,
     help='Coverage depth to simulate')
-parser.add_argument('--num_bg_peaks', type=int, default=1,
-    help='Number of random background peaks to add')
-parser.add_argument('--num_fg_peaks', type=int, default=1,
-    help='Number of random foreground peaks to add')
+parser.add_argument('--tf_peak_count', type=int, default=1,
+    help='Number of TF peaks to simulate')
 parser.add_argument('--fragment_length', type=int, default=150,
     help='Length (bp) of the dsDNA fragment; assumed constant.')
 parser.add_argument('--read_length', type=int, default=38,
@@ -76,8 +74,7 @@ args, _ = parser.parse_known_args()
 # this particular genome has 3 chroms, chr1, chr2, chr3, with lengths 100, 200, 300 respectively
 fasta = args.fasta
 coverage = args.coverage
-num_bg_peaks = args.num_bg_peaks
-num_fg_peaks = args.num_fg_peaks
+tf_peak_count = args.tf_peak_count
 k = args.fragment_length
 peak_broadness = args.peak_broadness
 tallness = args.tallness
@@ -222,31 +219,19 @@ def build_accessibility_bias_pmf(length: int, accessibility_bed: str,
     bias /= bias.sum()
     return bias
 
-def create_pmf(chrom_len, num_bg_peaks, num_fg_peaks, k, peak_broadness, tallness):
-    """Create combined pmf for one chromosome"""
-    
+def create_pmf(chrom_len: int, k: int) -> List[float]:
+    """Initialize PMF array with zeros for one chromosome."""
+
     num_bins = chrom_len - k + 1
 
-    # initialize bins 
-    pmf = [1] * num_bins
-
-    # add background peaks
-    pmf = add_peaks(pmf, num_bg_peaks, peak_broadness, tallness)
-
-    # add foreground peaks
-    pmf = add_peaks(pmf, num_fg_peaks, peak_broadness, tallness)
-
-    pmf = normalize_bins(pmf)
+    pmf = [0] * num_bins
 
     return pmf
 
 def create_pmf_all_chroms(
     fasta: str,
-    peak_broadness: int,
-    tallness: int,
-    num_bg_peaks: int,
-    num_fg_peaks: int,
     fragment_length: int,
+    tf_peak_count: int,
     tf_sigma: float,
     tf_enrichment: float,
     accessibility_bed: str,
@@ -265,16 +250,12 @@ def create_pmf_all_chroms(
         base = np.array(
             create_pmf(
                 len(seq),
-                num_bg_peaks,
-                num_fg_peaks,
                 fragment_length,
-                peak_broadness,
-                tallness,
             ),
             dtype=float,
         )
         length = base.shape[0]
-        tf_centers = rng.integers(0, length, size=max(1, num_fg_peaks))
+        tf_centers = rng.integers(0, length, size=max(1, tf_peak_count))
         tf_bias = build_tf_bias_pmf(length, tf_centers.tolist(), tf_sigma, tf_enrichment)
         gc_bias = build_gc_bias_pmf(seq, gc_params, fragment_length)
         acc_bias = build_accessibility_bias_pmf(length, accessibility_bed, acc_weight)
@@ -373,11 +354,8 @@ if fasta:
         raise ValueError('read_length must not exceed fragment_length')
     genome_pmf = create_pmf_all_chroms(
         fasta,
-        peak_broadness,
-        tallness,
-        num_bg_peaks,
-        num_fg_peaks,
         k,
+        tf_peak_count,
         tf_sigma,
         tf_enrichment,
         accessibility_bed,
