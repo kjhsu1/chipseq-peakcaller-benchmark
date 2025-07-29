@@ -7,19 +7,15 @@ This program will print FASTA of reads generated based on user defined arguments
 
 """Imports"""
 
-import sys
 import random
 import os
 from typing import List, Dict
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.stats import norm
-from statsmodels.nonparametric.smoothers_lowess import lowess
 
 from . import LIB
-import json
 import argparse
 
 
@@ -48,8 +44,10 @@ parser.add_argument('--num_bg_peaks', type=int, default=1,
     help='Number of random background peaks to add')
 parser.add_argument('--num_fg_peaks', type=int, default=1,
     help='Number of random foreground peaks to add')
-parser.add_argument('--fragment_length', type=int, default=4,
-    help='The fragment length of each read (k-mer size); usually between 100=500bp')
+parser.add_argument('--fragment_length', type=int, default=150,
+    help='Length (bp) of the dsDNA fragment; assumed constant.')
+parser.add_argument('--read_length', type=int, default=38,
+    help='Length (bp) of each mate-pair read (typical kits: 38 bp or 100 bp).')
 parser.add_argument('--peak_broadness', type=int, default=9,
     help='Number of bins that make up each peak')
 parser.add_argument('--tallness', type=int, default=10,
@@ -66,6 +64,10 @@ parser.add_argument('--gc_bias_params', type=str, default=None,
     help='CSV file for GC bias lookup table')
 parser.add_argument('--seed', type=int, default=42,
     help='Random seed for reproducible TF peak placement')
+parser.add_argument('--nb_k', type=float, default=10.0,
+    help='Inverse-dispersion (size) parameter k for negative-binomial noise; smaller k ⇒ more variance.')
+parser.add_argument('--output_fasta', required=True,
+    help='Path to write paired-end reads in FASTA format.')
 parser.add_argument('--pmf_csv', type=str, default=None,
     help='Path to CSV file storing PMF and variance per bin')
 
@@ -85,6 +87,9 @@ accessibility_bed = args.accessibility_bed
 acc_weight = args.acc_weight
 gc_bias_params = args.gc_bias_params
 seed = args.seed
+read_length = args.read_length
+nb_k = args.nb_k
+output_fasta = args.output_fasta
 pmf_csv = args.pmf_csv
 
 if not pmf_csv and fasta:
@@ -125,6 +130,12 @@ _________
 """
 
 
+def reverse_complement(seq: str) -> str:
+    """Return reverse complement of DNA sequence."""
+    table = str.maketrans('ACGTacgt', 'TGCAtgca')
+    return seq.translate(table)[::-1]
+
+
 def add_peaks(pmf, num_peaks, peak_broadness, tallness):
     """Add num_peaks peaks using broadness and tallness"""
     center = max(peak_broadness // 2, 1)
@@ -156,13 +167,6 @@ def normalize_bins(pmf):
         pmf[i] = (pmf[i]/total)
     return pmf
 
-def sample_from_bins(pmf, num_sample):
-    """
-    Takes in a bins pmf, and samples num_sample times from the distribution.
-    """
-    bins_indices = list(range(len(pmf))) # ex. range(3) = [0, 1, 2]
-    samples = random.choices(bins_indices, weights=pmf, k=num_sample)
-    return samples
 
 def build_tf_bias_pmf(length: int, peaks: List[int], sigma: float,
                       enrichment: float) -> np.ndarray:
@@ -175,10 +179,10 @@ def build_tf_bias_pmf(length: int, peaks: List[int], sigma: float,
     bias /= bias.sum()
     return bias
 
-def build_gc_bias_pmf(sequence: str, loess_params: Dict) -> np.ndarray:
+def build_gc_bias_pmf(sequence: str, loess_params: Dict, fragment_length: int) -> np.ndarray:
     """Return normalized GC-content bias PMF."""
     if not loess_params or 'csv' not in loess_params or loess_params['csv'] is None:
-        bias = np.ones(len(sequence) - k + 1, dtype=float)
+        bias = np.ones(len(sequence) - fragment_length + 1, dtype=float)
         bias /= bias.sum()
         return bias
     csv_path = loess_params['csv']
@@ -190,8 +194,8 @@ def build_gc_bias_pmf(sequence: str, loess_params: Dict) -> np.ndarray:
     seq_arr = np.frombuffer(sequence.upper().encode('ascii'), dtype='S1')
     gc_mask = np.isin(seq_arr, [b'G', b'C'])
     cumsum = np.cumsum(gc_mask)
-    counts = cumsum[k - 1:] - np.concatenate(([0], cumsum[:-k]))
-    gc_percent = counts / k
+    counts = cumsum[fragment_length - 1:] - np.concatenate(([0], cumsum[:-fragment_length]))
+    gc_percent = counts / fragment_length
     bias = np.interp(gc_percent, gc_vals, weights)
     bias /= bias.sum()
     return bias
@@ -236,33 +240,49 @@ def create_pmf(chrom_len, num_bg_peaks, num_fg_peaks, k, peak_broadness, tallnes
 
     return pmf
 
-def create_pmf_all_chroms(fasta, peak_broadness, tallness):
+def create_pmf_all_chroms(
+    fasta: str,
+    peak_broadness: int,
+    tallness: int,
+    num_bg_peaks: int,
+    num_fg_peaks: int,
+    fragment_length: int,
+    tf_sigma: float,
+    tf_enrichment: float,
+    accessibility_bed: str,
+    acc_weight: float,
+    seed: int,
+    gc_bias_params: str,
+) -> Dict[str, List[float]]:
     """Build PMF dictionary for all chromosomes with bias modeling."""
+
     genome_pmfs = {}
     rng = np.random.default_rng(seed)
     gc_params = {'csv': gc_bias_params}
     for chrom_id, seq in LIB.read_fasta(fasta):
-        if len(seq) < k:
+        if len(seq) < fragment_length:
             continue
         base = np.array(
-            create_pmf(len(seq), num_bg_peaks, num_fg_peaks, k, peak_broadness, tallness),
+            create_pmf(
+                len(seq),
+                num_bg_peaks,
+                num_fg_peaks,
+                fragment_length,
+                peak_broadness,
+                tallness,
+            ),
             dtype=float,
         )
         length = base.shape[0]
         tf_centers = rng.integers(0, length, size=max(1, num_fg_peaks))
         tf_bias = build_tf_bias_pmf(length, tf_centers.tolist(), tf_sigma, tf_enrichment)
-        gc_bias = build_gc_bias_pmf(seq, gc_params)
+        gc_bias = build_gc_bias_pmf(seq, gc_params, fragment_length)
         acc_bias = build_accessibility_bias_pmf(length, accessibility_bed, acc_weight)
         combined = base * tf_bias * gc_bias * acc_bias
         pmf = combined / combined.sum()
         genome_pmfs[chrom_id] = pmf.tolist()
     return genome_pmfs
 
-def pmf_variance(pmf: List[float]) -> List[float]:
-    """Return variance for each bin assuming Bernoulli trials."""
-    arr = np.asarray(pmf, dtype=float)
-    var = arr * (1 - arr)
-    return var.tolist()
 
 def write_pmf_csv(genome_pmfs: Dict[str, List[float]], path: str) -> None:
     """Write PMF and variance arrays to CSV."""
@@ -288,156 +308,96 @@ def chrom_bias(fasta):
         chrom_bias[id] = chrom_bias[id] / total_bp
     return chrom_bias
 
-def sample_genome(fasta, genome_pmfs):
-    """
-    Sample from a genome pmf
-    
-    Parameters: Path to fasta, genomic P.M.F
+def sample_genome(
+    fasta: str,
+    genome_pmfs: Dict[str, List[float]],
+    coverage: float,
+    fragment_length: int,
+    read_length: int,
+    nb_k: float,
+) -> (List[tuple], Dict[str, np.ndarray]):
+    """Return paired-end reads and negative-binomial counts."""
 
-    Output: dictionary of reads
-        key: chrom (ex. 'chr1', 'chr2')
-        value: list of lists of reads, (ex. [ [1,2,3,4], [4,5,6,7] ])
-            - in the example, it denotes two reads; both 4 bps long spanning those coords 
-    """
-    # find chrom bias
     chrom_bias = {}
+    seqs = {}
     total_bp = 0
-    for id, seq in LIB.read_fasta(fasta):
-        if len(seq) < k: continue
+    for chrom_id, seq in LIB.read_fasta(fasta):
+        seqs[chrom_id] = seq
+        if len(seq) < fragment_length:
+            continue
         total_bp += len(seq)
-        chrom_bias[id] = len(seq)
-    for id in chrom_bias:
-        chrom_bias[id] = chrom_bias[id] / total_bp
-    
-    # Do the experiment
-    num_sample = int((total_bp * coverage) / k)
-    chroms = list(chrom_bias.keys())
-    biases = list(chrom_bias.values())
-    reads_dict = {} # store samples for each chrom
-    for chrom in chroms:
-        reads_dict[chrom] = []
+        chrom_bias[chrom_id] = len(seq)
+    for cid in chrom_bias:
+        chrom_bias[cid] /= total_bp
 
-    for i in range(num_sample):
-        picked_chrom = random.choices(chroms, weights=biases)[0]
-        sample_index = sample_from_bins(genome_pmfs[picked_chrom], 1)[0]
+    total_reads = int((total_bp * coverage) / fragment_length)
 
-        strand = '+'
-        coords = list(range(sample_index, sample_index + k))
-        reads_dict[picked_chrom].append((strand, coords))
+    paired_reads = []
+    nb_counts_dict = {}
 
-    # print(json.dumps(reads_dict, indent=4))
-    return reads_dict
+    for chrom_id, pmf_list in genome_pmfs.items():
+        if chrom_id not in chrom_bias:
+            continue
+        pmf = np.array(pmf_list, dtype=float)
+        expected_counts = pmf * (chrom_bias[chrom_id] * total_reads)
+        nb_counts = np.random.negative_binomial(
+            n=nb_k,
+            p=nb_k / (nb_k + expected_counts)
+        )
+        nb_counts_dict[chrom_id] = nb_counts
+        seq = seqs[chrom_id]
+        for start_idx, count in enumerate(nb_counts):
+            for _ in range(int(count)):
+                frag_start = start_idx
+                frag_end = frag_start + fragment_length - 1
+                r1_seq = seq[frag_start: frag_start + read_length]
+                r2_seq = reverse_complement(
+                    seq[frag_end - read_length + 1: frag_end + 1]
+                )
+                paired_reads.append((r1_seq, r2_seq))
 
-def sample_to_fasta(exp, fasta):
-    """Convert sampled indices into FASTA format"""
+    return paired_reads, nb_counts_dict
 
-    frag_num = 1
+def write_paired_fasta(paired_reads, output_path):
+    """Write paired-end reads in interleaved FASTA format."""
 
-    for id, seq in LIB.read_fasta(fasta):
-        for strand, coords in exp[id]:
-            dna = [seq[index] for index in coords]
+    with open(output_path, 'w') as fh:
+        for i, (r1, r2) in enumerate(paired_reads, start=1):
+            fh.write(f">read_{i:06d}/1\n{r1}\n")
+            fh.write(f">read_{i:06d}/2\n{r2}\n")
 
-            print(f'>read_{frag_num}:{id}:{strand}')
-            print(''.join(dna))
-            frag_num += 1
-
-"""
-Functions for Debugging/Checking
-_______________________
-"""
-
-def total_num_reads(exp_sample):
-    """
-    Get total number of reads from a sampling experiment
-    """
-    read_sum = 0
-    for chrom in exp_sample:
-        read_sum += len(exp_sample[chrom])
-    return read_sum
-
-def chrom_distribution(exp_sample):
-    """
-    Get distribution of chromosomes in a sampling experiment
-
-    WILL NOT RETURN VALUE, WILL JUST PRINT
-    """
-    total = total_num_reads(exp_sample)
-    dict = {}
-    for chrom in exp_sample:
-        chrom_total = len(exp_sample[chrom])
-        dict[chrom] = chrom_total / total
-    print('Experimental Distribution', '\n',json.dumps(dict, indent=4))
-    
-    # can compare with expected distribution
-    c_bias = chrom_bias(fasta)
-    print('Expected Distribution', '\n', json.dumps(c_bias, indent=4))
-
-def graph_pmf(pmf, title="Experimental P.M.F"):
-    """
-    Graphs the P.M.F
-    """
-    bin_coords = range(len(pmf))
-    probs = pmf
-
-    plt.figure()
-    plt.plot(bin_coords, probs)
-    plt.xlabel('Read/K-mer index')
-    plt.ylabel('Probability')
-    plt.title(title)
-    plt.show()
-
-def graph_all_genome_pmf(genome_pmf):
-    for chrom in genome_pmf.keys():
-        pmf = genome_pmf[chrom]
-        graph_pmf(pmf, title=f'P.M.F for Experimental, {chrom}')
-
-def graph_experiment(exp, genome_pmf):
-    """
-    Graph the sample base distribution
-    """
-    # initialize dict to track number of samples
-    sample_distribution = {}
-    for chrom in genome_pmf.keys():
-        sample_distribution[chrom] = {}
-        for i in range(len(genome_pmf[chrom]) + k-1):
-            sample_distribution[chrom][i] = 0
-
-    # print(json.dumps(sample_distribution, indent=4)) # debug
-
-    # count each sample
-    for chrom in exp.keys():
-        samples = exp[chrom]
-        for sample in samples:
-            for base in sample:
-                sample_distribution[chrom][base] += 1
-
-    # print(json.dumps(sample_distribution, indent=4)) # debug
-    
-    # graph each chrom
-    for chrom in sample_distribution.keys():
-        x = list(sample_distribution[chrom].keys())
-        y = list(sample_distribution[chrom].values())
-        # print(x) # debug
-        # print(y) #debug
-        plt.figure()
-        plt.plot(x, y)
-        plt.xlabel('Base Coordinate')
-        plt.ylabel('Counts')
-        plt.title(f'Base Distribution in Sample: {chrom}')
-        plt.show()
-
-"""
-Below code will print the FASTA for the reads generated from experiment
-"""
+"""Below code will print the FASTA for the reads generated from experiment"""
 
 if fasta:
-    genome_pmf = create_pmf_all_chroms(fasta, peak_broadness, tallness)
+    if read_length > k:
+        raise ValueError('read_length must not exceed fragment_length')
+    genome_pmf = create_pmf_all_chroms(
+        fasta,
+        peak_broadness,
+        tallness,
+        num_bg_peaks,
+        num_fg_peaks,
+        k,
+        tf_sigma,
+        tf_enrichment,
+        accessibility_bed,
+        acc_weight,
+        seed,
+        gc_bias_params,
+    )
+
+    paired_reads, nb_counts = sample_genome(
+        fasta,
+        genome_pmf,
+        coverage,
+        k,
+        read_length,
+        nb_k,
+    )
+    write_paired_fasta(paired_reads, output_fasta)
+    
     if pmf_csv:
         write_pmf_csv(genome_pmf, pmf_csv)
-    exp = sample_genome(fasta, genome_pmf)
-    # print(json.dumps(genome_pmf, indent=4)) # for debugging
-    # print(json.dumps(exp, indent=4)) # for debugging
-    sample_to_fasta(exp, fasta)
 
     '''
     uncomment both to compare pmf graph with actual experiment graph
