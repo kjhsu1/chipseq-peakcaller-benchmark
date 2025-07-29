@@ -46,10 +46,6 @@ parser.add_argument('--fragment_length', type=int, default=150,
     help='Length (bp) of the dsDNA fragment; assumed constant.')
 parser.add_argument('--read_length', type=int, default=38,
     help='Length (bp) of each mate-pair read (typical kits: 38 bp or 100 bp).')
-parser.add_argument('--peak_broadness', type=int, default=9,
-    help='Number of bins that make up each peak')
-parser.add_argument('--tallness', type=int, default=10,
-    help='Height multiplier for peak center relative to baseline')
 parser.add_argument('--tf_sigma', type=float, default=5.0,
     help='Standard deviation for TF-binding bias')
 parser.add_argument('--tf_enrichment', type=float, default=1.0,
@@ -76,8 +72,6 @@ fasta = args.fasta
 coverage = args.coverage
 tf_peak_count = args.tf_peak_count
 k = args.fragment_length
-peak_broadness = args.peak_broadness
-tallness = args.tallness
 tf_sigma = args.tf_sigma
 tf_enrichment = args.tf_enrichment
 accessibility_bed = args.accessibility_bed
@@ -133,36 +127,6 @@ def reverse_complement(seq: str) -> str:
     return seq.translate(table)[::-1]
 
 
-def add_peaks(pmf, num_peaks, peak_broadness, tallness):
-    """Add num_peaks peaks using broadness and tallness"""
-    center = max(peak_broadness // 2, 1)
-    peaks = []
-    for i in range(peak_broadness):
-        distance = abs(i - center)
-        height = 1 + (tallness - 1) * (1 - distance / center)
-        peaks.append(height)
-    used_peaks = []
-    p_index = random.randint(0, len(pmf) - len(peaks))
-
-    for peak in range(num_peaks):
-        while p_index in used_peaks:
-            p_index = random.randint(0, len(pmf) - len(peaks)) # can't create peaks on the last 6 bases
-        for i in range(p_index, p_index + len(peaks)): # create the peaks in the bin
-            pmf[i] = pmf[i] + peaks[i-p_index] # should we add or multiply?
-        # don't want peaks to overlap, and want a space of at least 1 between peaks
-        start = p_index - 1
-        end = p_index + len(peaks) + 1
-        used_peaks.extend(range(start, end))
-    return pmf 
-
-def normalize_bins(pmf):
-    """
-    Takes in  a bins pmf, normalize so all bins sum to 1
-    """
-    total = sum(pmf)
-    for i, bin in enumerate(pmf):
-        pmf[i] = (pmf[i]/total)
-    return pmf
 
 
 def build_tf_bias_pmf(length: int, peaks: List[int], sigma: float,
@@ -275,19 +239,6 @@ def write_pmf_csv(genome_pmfs: Dict[str, List[float]], path: str) -> None:
             rows.append((idx, p, v))
     df = pd.DataFrame(rows, columns=['bin_idx', 'pmf', 'variance'])
     df.to_csv(path, index=False)
-
-def chrom_bias(fasta):
-    """
-    Find the sampling bias for each chrom based on length relative to the sum total of genomic bps
-    """
-    chrom_bias = {}
-    total_bp = 0
-    for id, seq in LIB.read_fasta(fasta):
-        total_bp += len(seq)
-        chrom_bias[id] = len(seq)
-    for id in chrom_bias:
-        chrom_bias[id] = chrom_bias[id] / total_bp
-    return chrom_bias
 
 def sample_genome(
     fasta: str,
