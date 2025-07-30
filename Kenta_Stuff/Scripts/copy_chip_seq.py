@@ -184,11 +184,11 @@ def build_accessibility_bias_pmf(length: int, accessibility_bed: str,
     return bias
 
 def create_pmf(chrom_len: int, k: int) -> List[float]:
-    """Initialize PMF array with zeros for one chromosome."""
+    """Initialize uniform PMF array for one chromosome."""
 
     num_bins = chrom_len - k + 1
 
-    pmf = [0] * num_bins
+    pmf = [1] * num_bins
 
     return pmf
 
