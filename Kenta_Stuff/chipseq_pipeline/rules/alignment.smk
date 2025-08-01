@@ -1,23 +1,53 @@
-"""Align simulated reads with Bowtie2 or BWA-MEM"""
+# alignment.smk — produces sorted & indexed BAMs per (run_id, cond) for the chosen aligner
 
-rule align_reads:
+# Bowtie2
+rule align_bowtie2:
     input:
-        fa = "reads/{genome}/{id}/reads.fa"
+        r1 = "results/{run_id}/{cond}/reads_R1.fasta",
+        r2 = "results/{run_id}/{cond}/reads_R2.fasta",
     output:
-        bam = "align/{genome}/{aligner}/{id}/aligned.bam",
-        bai = "align/{genome}/{aligner}/{id}/aligned.bam.bai"
+        bam = "results/{run_id}/bowtie2/{cond}/aligned.sorted.bam",
+        bai = "results/{run_id}/bowtie2/{cond}/aligned.sorted.bam.bai",
+    threads: 4
     params:
-        idx = lambda wc: config['indexes'][wc.genome][wc.aligner]
-    log:
-        "logs/align_reads/{genome}_{aligner}_{id}.log"
-    conda:
-        "envs/align.yml"
+        bt2 = lambda wc: bowtie2_index(find_row(wc.run_id))
     shell:
-        """
-        if [ "{wildcards.aligner}" = "bowtie2" ]; then
-            bowtie2 -x {params.idx} -f {input.fa} | samtools sort -o {output.bam} -
-        else
-            bwa mem {params.idx} {input.fa} | samtools sort -o {output.bam} -
-        fi
+        r"""
+        bowtie2 -f -x {params.bt2} -1 {input.r1} -2 {input.r2} \
+          | samtools view -b - \
+          | samtools sort -o {output.bam}
         samtools index {output.bam}
-        """ > {log} 2>&1
+        """
+
+# BWA-MEM
+rule align_bwa_mem:
+    input:
+        r1 = "results/{run_id}/{cond}/reads_R1.fasta",
+        r2 = "results/{run_id}/{cond}/reads_R2.fasta",
+    output:
+        bam = "results/{run_id}/bwa-mem/{cond}/aligned.sorted.bam",
+        bai = "results/{run_id}/bwa-mem/{cond}/aligned.sorted.bam.bai",
+    threads: 4
+    params:
+        bwa = lambda wc: bwa_index(find_row(wc.run_id))
+    shell:
+        r"""
+        bwa mem {params.bwa} {input.r1} {input.r2} \
+          | samtools view -b - \
+          | samtools sort -o {output.bam}
+        samtools index {output.bam}
+        """
+
+# Collector returns only the BAMs for the aligner chosen in SAMPLES
+def align_all():
+    outs = []
+    for r in SAMPLES:
+        rid = r["run_id"]; alg = r["aligner"]
+        for cond in ("con", "treat"):
+            base = f"results/{rid}/{alg}/{cond}/aligned.sorted.bam"
+            outs += [base, f"{base}.bai"]
+    return outs
+
+rule align_done:
+    input: align_all()
+
