@@ -1,23 +1,39 @@
-"""Call peaks using MACS2 or Epic2"""
+# peakcalling.smk — MACS2 peak calling using Bowtie2 alignments
 
-rule call_peaks:
-    input:
-        bam = "align/{genome}/{aligner}/{id}/aligned.bam"
+def macs2_inputs(wc):
+    r = find_row(wc.run_id)
+    return {
+        "treat": f"results/{wc.run_id}/bowtie2/treat/aligned.sorted.bam",
+        "ctrl":  f"results/{wc.run_id}/bowtie2/con/aligned.sorted.bam",
+    }
+
+# MACS2
+rule call_peaks_macs2:
+    input: macs2_inputs
     output:
-        bed = "peaks/{genome}/{aligner}/{peakcaller}/{id}/peaks.bed"
+        narrow = "results/{run_id}/peaks/macs2/{run_id}_peaks.narrowPeak"
     params:
-        gs = lambda wc: config['genome_size'][wc.genome],
-        nomodel = lambda wc: '--nomodel' if wc.peakcaller == 'macs2' else ''
-    log:
-        "logs/call_peaks/{genome}_{aligner}_{peakcaller}_{id}.log"
-    conda:
-        "envs/peak.yml"
+        gsize = lambda wc: macs2_gsize(find_row(wc.run_id)),
+        flags = lambda wc: macs2_flags()
     shell:
+        r"""
+        macs2 callpeak \
+          -t {input.treat} \
+          -c {input.ctrl} \
+          -g {params.gsize} \
+          -n {wildcards.run_id} \
+          {params.flags}
         """
-        if [ "{wildcards.peakcaller}" = "macs2" ]; then
-            macs2 callpeak -t {input.bam} -f BAMPE -g {params.gs} {params.nomodel} -n {wildcards.id} --outdir $(dirname {output.bed})
-            mv $(dirname {output.bed})/{wildcards.id}_peaks.narrowPeak {output.bed}
-        else
-            epic2 -t {input.bam} -c {input.bam} -o {output.bed}
-        fi
-        """ > {log} 2>&1
+
+
+# Collector returns only the peak files for the caller chosen in SAMPLES
+
+def peaks_all():
+    outs = []
+    for r in SAMPLES:
+        rid = r["run_id"]
+        outs.append(f"results/{rid}/peaks/macs2/{rid}_peaks.narrowPeak")
+    return outs
+
+rule peaks_done:
+    input: peaks_all()
