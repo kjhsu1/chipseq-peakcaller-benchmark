@@ -13,6 +13,7 @@ rule align_bowtie2:
         bt2 = lambda wc: bowtie2_index(find_row(wc.run_id))
     shell:
         r"""
+        mkdir -p $(dirname {output.bam})
         bowtie2 -f -x {params.bt2} -1 {input.r1} -2 {input.r2} \
           | samtools view -b - \
           | samtools sort -o {output.bam}
@@ -32,6 +33,7 @@ rule align_bwa_mem:
         bwa = lambda wc: bwa_index(find_row(wc.run_id))
     shell:
         r"""
+        mkdir -p $(dirname {output.bam})
         bwa mem {params.bwa} {input.r1} {input.r2} \
           | samtools view -b - \
           | samtools sort -o {output.bam}

@@ -16,16 +16,16 @@ gc_bias_sets: [ "gcA", "gcB" ]             # keys into gc_bias_paths
 
 # Name→path maps
 genome_paths:
-  ce11_1pct: "/path/to/c_elegans_1pct.fa"
+  ce11_1pct: "data/genomes/ce11_1pct/ce11_1pct.fa"
 
 accessibility_paths:
   ce11_1pct:
-    bedA: "/path/to/ce11/acc/bedA.bed"
-    bedB: "/path/to/ce11/acc/bedB.bed"
+    bedA: "data/accessibility/ce11_1pct/bedA.bed"
+    bedB: "data/accessibility/ce11_1pct/bedB.bed"
 
 gc_bias_paths:
-  gcA: "/path/to/gc_bias_A.csv"
-  gcB: "/path/to/gc_bias_B.csv"
+  gcA: "data/gc_bias/gcA.csv"
+  gcB: "data/gc_bias/gcB.csv"
 
 # Peak-caller parameters kept OUTSIDE the sweep
 peakcallers:
@@ -37,7 +37,8 @@ peakcallers:
 # Alignment indexes keyed by genome
 indexes:
   ce11_1pct:
-    bowtie2_index: "/path/to/bt2/ce11_1pct"
+    bowtie2_index: "data/indexes/ce11_1pct/bowtie2_index/index"
+    bwa_index: "data/indexes/ce11_1pct/bwa_index/index"
 
 # Where to store final per-run parameter manifest
 params_table: "results/params/run_params.csv"
