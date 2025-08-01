@@ -28,7 +28,7 @@ rule simulate_reads:
         gc_bias   = lambda wc: gc_bias_path(find_row(wc.run_id)),
     shell:
         r"""
-        python /mnt/data/copy_chip_seq.py \
+        python scripts/updated_chip_seq.py \
           --fasta {params.fasta} \
           --coverage {params.cov} \
           --tf_peak_count {params.tfcount} \
