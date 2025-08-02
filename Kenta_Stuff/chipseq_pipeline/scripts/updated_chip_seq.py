@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
-from . import LIB
+from . import lib
 import argparse
 
 
@@ -208,7 +208,7 @@ def create_pmf_all_chroms(
     genome_pmfs = {}
     rng = np.random.default_rng(seed)
     gc_params = {'csv': gc_bias_params}
-    for chrom_id, seq in LIB.read_fasta(fasta):
+    for chrom_id, seq in lib.read_fasta(fasta):
         if len(seq) < fragment_length:
             continue
         base = np.array(
@@ -253,7 +253,7 @@ def sample_genome(
     chrom_bias = {}
     seqs = {}
     total_bp = 0
-    for chrom_id, seq in LIB.read_fasta(fasta):
+    for chrom_id, seq in lib.read_fasta(fasta):
         seqs[chrom_id] = seq
         if len(seq) < fragment_length:
             continue
