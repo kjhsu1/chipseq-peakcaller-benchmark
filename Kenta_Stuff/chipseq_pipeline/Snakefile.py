@@ -66,9 +66,9 @@ rule write_params_table:
         pd.DataFrame(SAMPLES).to_csv(output[0], index=False)
 
 # ---------- include stage modules ----------
-include: "simulation.smk"
-include: "alignment.smk"
-include: "peakcalling.smk"
+include: "rules/simulation.smk"
+include: "rules/alignment.smk"
+include: "rules/peakcalling.smk"
 
 # ---------- global default target (Pattern B) ----------
 rule all:
