@@ -24,7 +24,6 @@ rule call_peaks_macs2:
         flags = lambda wc: macs2_flags()
     shell:
         r"""
-        mkdir -p $(dirname {output.narrow})
         macs2 callpeak \
           -t {input.treat} \
           -c {input.ctrl} \
@@ -43,7 +42,6 @@ rule call_peaks_epic2:
         flags = lambda wc: epic2_flags()
     shell:
         r"""
-        mkdir -p $(dirname {output.narrow})
         epic2 --treatment {input.treat} \
               --control  {input.ctrl} \
               --genome-size {params.gsize} \
