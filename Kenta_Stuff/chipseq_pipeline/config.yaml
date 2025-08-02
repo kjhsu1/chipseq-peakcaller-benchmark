@@ -1,18 +1,24 @@
 # config.yaml
 # Sweep knobs (edit values to your study)
-genomes:        [ "ce11_1pct" ]           # keys into genome_paths
-coverage_treat: [ 1, 5, 10 ]
-coverage_ctrl:  [ 1, 5 ]
-tf_peak_count_treat: [ 0, 1, 2, 5, 10 ]    # treatment only; control fixed to 0
-fragment_length: [ 150, 200, 250, 300 ]    # shared
-read_length:     [ 38, 50, 100, 140 ]      # shared
-tf_sigma:        [ 5, 10, 15 ]             # treatment only
-tf_enrich:       [ 1, 2, 3 ]               # treatment only
-nb_k:            [ 5, 10, 15, 20 ]         # shared dispersion
+genomes:
+  - "ce11_1pct"               # keys into genome_paths
+
+coverage_treat: [1, 5, 10]
+coverage_ctrl:  [1, 5]
+
+tf_peak_count_treat: [0, 1, 2, 5, 10]   # treatment only; control fixed to 0
+fragment_length: [150, 200, 250, 300]   # shared
+read_length:     [38, 50, 100, 140]     # shared
+tf_sigma:        [5, 10, 15]            # treatment only
+tf_enrich:       [1, 2, 3]              # treatment only
+nb_k:            [5, 10, 15, 20]        # shared dispersion
+
+# NEW: aligners used in the sweep (must match alignment.smk output folder names)
+aligners: ["bowtie2", "bwa-mem"]
 
 # Bias sources selected by name in the sweep (shared across conds)
-acc_beds:     [ "bedA", "bedB" ]           # keys into accessibility_paths[genome]
-gc_bias_sets: [ "gcA", "gcB" ]             # keys into gc_bias_paths
+acc_beds:     ["bedA", "bedB"]          # keys into accessibility_paths[genome]
+gc_bias_sets: ["gcA", "gcB"]            # keys into gc_bias_paths
 
 # Name→path maps
 genome_paths:
@@ -27,18 +33,23 @@ gc_bias_paths:
   gcA: "data/gc_bias/gcA.csv"
   gcB: "data/gc_bias/gcB.csv"
 
-# Peak-caller parameters kept OUTSIDE the sweep
+# Peak-caller parameters (values here are NOT swept; only the *caller names* are)
+# Both callers must have genome_size per genome; flags are optional.
 peakcallers:
   macs2:
     flags: "--nomodel --keep-dup all"
     genome_size:
-      ce11_1pct: "1.0e7"   # or 'ce' if you prefer shorthand
+      ce11_1pct: "1.0e7"    # or 'ce' if you prefer shorthand
+  epic2:
+    flags: ""               # e.g., "--q-value 0.05 --binsize 200" if you like
+    genome_size:
+      ce11_1pct: "1.0e7"
 
 # Alignment indexes keyed by genome
 indexes:
   ce11_1pct:
     bowtie2_index: "data/indexes/ce11_1pct/bowtie2_index/index"
-    bwa_index: "data/indexes/ce11_1pct/bwa_index/index"
+    bwa_index:     "data/indexes/ce11_1pct/bwa_index/index"
 
 # Where to store final per-run parameter manifest
 params_table: "results/params/run_params.csv"
