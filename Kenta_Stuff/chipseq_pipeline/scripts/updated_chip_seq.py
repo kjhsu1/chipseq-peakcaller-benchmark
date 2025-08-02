@@ -162,7 +162,7 @@ def build_gc_bias_pmf(sequence: str, loess_params: Dict, fragment_length: int) -
     return bias
 
 def build_accessibility_bias_pmf(length: int, accessibility_bed: str,
-                                 acc_weight: float) -> np.ndarray:
+                                 acc_weight: float, chrom_id: str) -> np.ndarray:
     """Return normalized chromatin accessibility bias PMF."""
     bias = np.ones(length, dtype=float)
     if accessibility_bed:
@@ -174,6 +174,8 @@ def build_accessibility_bias_pmf(length: int, accessibility_bed: str,
                     continue
                 fields = line.strip().split()[:3]
                 if len(fields) < 3:
+                    continue
+                if fields[0] != chrom_id:
                     continue
                 start = int(fields[1])
                 end = int(fields[2])
@@ -222,7 +224,7 @@ def create_pmf_all_chroms(
         tf_centers = rng.integers(0, length, size=max(1, tf_peak_count))
         tf_bias = build_tf_bias_pmf(length, tf_centers.tolist(), tf_sigma, tf_enrichment)
         gc_bias = build_gc_bias_pmf(seq, gc_params, fragment_length)
-        acc_bias = build_accessibility_bias_pmf(length, accessibility_bed, acc_weight)
+        acc_bias = build_accessibility_bias_pmf(length, accessibility_bed, acc_weight, chrom_id)
         combined = base * tf_bias * gc_bias * acc_bias
         pmf = combined / combined.sum()
         genome_pmfs[chrom_id] = pmf.tolist()
