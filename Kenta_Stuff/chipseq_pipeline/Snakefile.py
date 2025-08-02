@@ -3,25 +3,6 @@
 configfile: "config.yaml"
 
 from itertools import product
-import os
-
-"""Setup"""
-for path in list(config["genome_paths"].values()):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-
-for sub in config["accessibility_paths"].values():
-    for p in sub.values():
-        os.makedirs(os.path.dirname(p), exist_ok=True)
-
-for path in config["gc_bias_paths"].values():
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-
-for idx in config.get("indexes", {}).values():
-    for p in idx.values():
-        os.makedirs(os.path.dirname(p), exist_ok=True)
-
-os.makedirs(os.path.dirname(config["params_table"]), exist_ok=True)
-os.makedirs("results", exist_ok=True)
 
 # ---------- sweep catalog ----------
 def build_samples(cfg):
