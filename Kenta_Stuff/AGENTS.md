@@ -3,6 +3,9 @@
   libraries only when explicitly instructed to do so in the prompt.
 - Do not use the logging module or any logging calls unless explicitly directed.
 
+# Off-Limits
+- Do not edit anything outside of /Kenta_Stuff
+
 # Environment
 - run command line command, "source", on setup.sh
 	- look for Kenta_Stuff/snakemake_stuff/setup.sh
