@@ -224,7 +224,7 @@ def create_pmf_all_chroms(
         tf_centers = rng.integers(0, length, size=max(1, tf_peak_count))
         tf_bias = build_tf_bias_pmf(length, tf_centers.tolist(), tf_sigma, tf_enrichment)
         gc_bias = build_gc_bias_pmf(seq, gc_params, fragment_length)
-        acc_bias = build_accessibility_bias_pmf(length, accessibility_bed, acc_weight, chrom_id)
+        acc_bias = build_accessibility_bias_pmf(length, accessibility_bed, acc_weight, chrom_id.split()[0])
         combined = base * tf_bias * gc_bias * acc_bias
         pmf = combined / combined.sum()
         genome_pmfs[chrom_id] = pmf.tolist()
