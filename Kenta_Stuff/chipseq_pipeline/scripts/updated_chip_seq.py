@@ -60,8 +60,10 @@ parser.add_argument('--seed', type=int, default=42,
     help='Random seed for reproducible TF peak placement')
 parser.add_argument('--nb_k', type=float, default=10.0,
     help='Inverse-dispersion (size) parameter k for negative-binomial noise; smaller k ⇒ more variance.')
-parser.add_argument('--output_fasta', required=True,
-    help='Path to write paired-end reads in FASTA format.')
+parser.add_argument('--output_fasta1', required=True,
+    help='Path to write mate 1 (R1) reads in FASTA format.')
+parser.add_argument('--output_fasta2', required=True,
+    help='Path to write mate 2 (R2) reads in FASTA format.')
 parser.add_argument('--pmf_csv', type=str, default=None,
     help='Path to CSV file storing PMF and variance per bin')
 
@@ -80,7 +82,8 @@ gc_bias_params = args.gc_bias_params
 seed = args.seed
 read_length = args.read_length
 nb_k = args.nb_k
-output_fasta = args.output_fasta
+output_fasta1 = args.output_fasta1
+output_fasta2 = args.output_fasta2
 pmf_csv = args.pmf_csv
 
 if not pmf_csv and fasta:
@@ -298,6 +301,14 @@ def write_paired_fasta(paired_reads, output_path):
             fh.write(f">read_{i:06d}/1\n{r1}\n")
             fh.write(f">read_{i:06d}/2\n{r2}\n")
 
+
+def write_r1_r2_fastas(paired_reads, r1_path, r2_path):
+    """Write paired-end reads to two separate FASTA files: R1 and R2."""
+    with open(r1_path, 'w') as f1, open(r2_path, 'w') as f2:
+        for i, (r1, r2) in enumerate(paired_reads, start=1):
+            f1.write(f">read_{i:06d}/1\n{r1}\n")
+            f2.write(f">read_{i:06d}/2\n{r2}\n")
+
 """Below code will print the FASTA for the reads generated from experiment"""
 
 if fasta:
@@ -323,7 +334,7 @@ if fasta:
         read_length,
         nb_k,
     )
-    write_paired_fasta(paired_reads, output_fasta)
+    write_r1_r2_fastas(paired_reads, output_fasta1, output_fasta2)
     
     if pmf_csv:
         write_pmf_csv(genome_pmf, pmf_csv)
