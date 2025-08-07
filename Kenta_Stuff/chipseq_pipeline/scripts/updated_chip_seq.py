@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
-from . import lib
+import scripts.lib as lib
 import argparse
 
 
@@ -341,13 +341,6 @@ if fasta:
     if pmf_csv:
         write_pmf_csv(genome_pmf, pmf_csv)
 
-    '''
-    uncomment both to compare pmf graph with actual experiment graph
-    NOTE: x-axis for pmf is not base coordinate for all bases in genome, rather base coordinates for first base of kmer/fragment
-    '''
-
-    # graph_all_genome_pmf(genome_pmf)
-    # graph_experiment(exp, genome_pmf)
 
 
 
