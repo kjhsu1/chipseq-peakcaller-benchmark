@@ -1,23 +1,26 @@
-# Coding Standards
+# Contribution Guidelines
+
+## Coding Standards
 - Only use the libraries that the codebase already uses. You may use other
   libraries only when explicitly instructed to do so in the prompt.
 - Do not use the logging module or any logging calls unless explicitly directed.
 
-# Off-Limits
-- Do not edit anything outside of /Kenta_Stuff
+## Restricted Areas
+- Do not edit anything outside of `/Kenta_Stuff`.
 
-# Environment
-- run command line command, "source", on setup.sh
-	- look for Kenta_Stuff/snakemake_stuff/setup.sh
+## Environment Setup
+- Run `source Kenta_Stuff/snakemake_stuff/setup.sh` before executing tests or scripts.
 
-# Style Guidlines
-- At Start of Each Program make sure to 
-- Make sure to section each section of the code with double quote comments, and leave one line of space above and below
-	- ex. """Imports"""
-	- ex. """Functions"""
-- Use one line docstring for functions and explain input and output if complex
-- Use argparse to get user arguments
-- Never add dunder name/main checks ("if __name__ == '__main__'") unless explicitly requested
+## Style Guidelines
+- At start of each program, ensure sections are marked with triple-quoted comments and leave one blank line above and below.
+  - Example: `"""Imports"""`
+  - Example: `"""Functions"""`
+- Use one line docstrings for functions and explain inputs and outputs when complex.
+- Use `argparse` to handle user arguments.
+- Never add dunder name/main checks (`if __name__ == '__main__'`) unless explicitly requested.
 
-# Interaction Instructions
-- Always ask clarifying questions if unsure
+## Documentation
+- Update the relevant `README.md` whenever a PR requires changes to its content.
+
+## Interaction Instructions
+- Always ask clarifying questions if unsure.
