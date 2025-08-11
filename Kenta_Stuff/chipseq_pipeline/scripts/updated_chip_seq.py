@@ -56,6 +56,12 @@ parser.add_argument('--acc_weight', type=float, default=1.0,
     help='Weight multiplier for accessible regions')
 parser.add_argument('--gc_bias_params', type=str, default=None,
     help='CSV file for GC bias lookup table')
+parser.add_argument('--tf_exp', type=float, default=1.0,
+    help='Exponent to reshape TF PMF (<1 flattens, >1 sharpens).')
+parser.add_argument('--gc_exp', type=float, default=1.0,
+    help='Exponent to reshape GC PMF (<1 flattens, >1 sharpens).')
+parser.add_argument('--acc_exp', type=float, default=1.0,
+    help='Exponent to reshape accessibility PMF (<1 flattens, >1 sharpens).')
 parser.add_argument('--seed', type=int, default=42,
     help='Random seed for reproducible TF peak placement')
 parser.add_argument('--nb_k', type=float, default=10.0,
@@ -79,6 +85,9 @@ tf_enrichment = args.tf_enrichment
 accessibility_bed = args.accessibility_bed
 acc_weight = args.acc_weight
 gc_bias_params = args.gc_bias_params
+tf_exp = args.tf_exp
+gc_exp = args.gc_exp
+acc_exp = args.acc_exp
 seed = args.seed
 read_length = args.read_length
 nb_k = args.nb_k
@@ -133,21 +142,28 @@ def reverse_complement(seq: str) -> str:
 
 
 def build_tf_bias_pmf(length: int, peaks: List[int], sigma: float,
-                      enrichment: float) -> np.ndarray:
-    """Return normalized TF-binding bias PMF."""
+                      enrichment: float, exp: float = 1.0) -> np.ndarray:
+    """Return TF-binding PMF reshaped by exponent."""
     bias = np.ones(length, dtype=float)
     positions = np.arange(length)
     for p in peaks:
         kernel = norm.pdf(positions, loc=p, scale=sigma)
         bias += enrichment * kernel
     bias /= bias.sum()
+    if exp != 1.0:
+        bias = np.power(bias, exp)
+        bias /= bias.sum()
     return bias
 
-def build_gc_bias_pmf(sequence: str, loess_params: Dict, fragment_length: int) -> np.ndarray:
-    """Return normalized GC-content bias PMF."""
+def build_gc_bias_pmf(sequence: str, loess_params: Dict, fragment_length: int,
+                      exp: float = 1.0) -> np.ndarray:
+    """Return GC-content PMF reshaped by exponent."""
     if not loess_params or 'csv' not in loess_params or loess_params['csv'] is None:
         bias = np.ones(len(sequence) - fragment_length + 1, dtype=float)
         bias /= bias.sum()
+        if exp != 1.0:
+            bias = np.power(bias, exp)
+            bias /= bias.sum()
         return bias
     csv_path = loess_params['csv']
     if not os.path.exists(csv_path):
@@ -161,12 +177,20 @@ def build_gc_bias_pmf(sequence: str, loess_params: Dict, fragment_length: int) -
     counts = cumsum[fragment_length - 1:] - np.concatenate(([0], cumsum[:-fragment_length]))
     gc_percent = counts / fragment_length
     bias = np.interp(gc_percent, gc_vals, weights)
-    bias /= bias.sum()
+    s = bias.sum()
+    if s == 0:
+        bias = np.ones_like(bias, dtype=float)
+        s = bias.sum()
+    bias /= s
+    if exp != 1.0:
+        bias = np.power(bias, exp)
+        bias /= bias.sum()
     return bias
 
 def build_accessibility_bias_pmf(length: int, accessibility_bed: str,
-                                 acc_weight: float, chrom_id: str) -> np.ndarray:
-    """Return normalized chromatin accessibility bias PMF."""
+                                 acc_weight: float, chrom_id: str,
+                                 exp: float = 1.0) -> np.ndarray:
+    """Return accessibility PMF reshaped by exponent."""
     bias = np.ones(length, dtype=float)
     if accessibility_bed:
         if not os.path.exists(accessibility_bed):
@@ -180,12 +204,13 @@ def build_accessibility_bias_pmf(length: int, accessibility_bed: str,
                     continue
                 if fields[0] != chrom_id:
                     continue
-                start = int(fields[1])
-                end = int(fields[2])
-                start = max(start, 0)
-                end = min(end, length)
+                start = max(int(fields[1]), 0)
+                end = min(int(fields[2]), length)
                 bias[start:end] *= acc_weight
     bias /= bias.sum()
+    if exp != 1.0:
+        bias = np.power(bias, exp)
+        bias /= bias.sum()
     return bias
 
 def create_pmf(chrom_len: int, k: int) -> List[float]:
@@ -207,6 +232,9 @@ def create_pmf_all_chroms(
     acc_weight: float,
     seed: int,
     gc_bias_params: str,
+    tf_exp: float,
+    gc_exp: float,
+    acc_exp: float,
 ) -> Dict[str, List[float]]:
     """Build PMF dictionary for all chromosomes with bias modeling."""
 
@@ -225,9 +253,11 @@ def create_pmf_all_chroms(
         )
         length = base.shape[0]
         tf_centers = rng.integers(0, length, size=max(1, tf_peak_count))
-        tf_bias = build_tf_bias_pmf(length, tf_centers.tolist(), tf_sigma, tf_enrichment)
-        gc_bias = build_gc_bias_pmf(seq, gc_params, fragment_length)
-        acc_bias = build_accessibility_bias_pmf(length, accessibility_bed, acc_weight, chrom_id.split()[0])
+        tf_bias = build_tf_bias_pmf(length, tf_centers.tolist(), tf_sigma, tf_enrichment,
+                                    exp=tf_exp)
+        gc_bias = build_gc_bias_pmf(seq, gc_params, fragment_length, exp=gc_exp)
+        acc_bias = build_accessibility_bias_pmf(length, accessibility_bed, acc_weight,
+                                               chrom_id.split()[0], exp=acc_exp)
         combined = base * tf_bias * gc_bias * acc_bias
         pmf = combined / combined.sum()
         genome_pmfs[chrom_id] = pmf.tolist()
@@ -326,6 +356,9 @@ if fasta:
         acc_weight,
         seed,
         gc_bias_params,
+        tf_exp,
+        gc_exp,
+        acc_exp,
     )
 
     paired_reads, nb_counts = sample_genome(

@@ -26,6 +26,9 @@ rule simulate_reads:
         fasta     = lambda wc: fasta_path(find_row(wc.run_id)),
         acc_bed   = lambda wc: acc_bed_path(find_row(wc.run_id)),
         gc_bias   = lambda wc: gc_bias_path(find_row(wc.run_id)),
+        tf_exp    = lambda wc: find_row(wc.run_id)["tf_exp"],
+        gc_exp    = lambda wc: find_row(wc.run_id)["gc_exp"],
+        acc_exp   = lambda wc: find_row(wc.run_id)["acc_exp"],
     shell:
         r"""
         python scripts/updated_chip_seq.py \
@@ -38,6 +41,9 @@ rule simulate_reads:
           --tf_enrich {params.tf_enrich} \
           --accessibility_bed {params.acc_bed} \
           --gc_bias_params {params.gc_bias} \
+          --tf_exp {params.tf_exp} \
+          --gc_exp {params.gc_exp} \
+          --acc_exp {params.acc_exp} \
           --nb_k {params.nb_k} \
           --output_fasta1 {output.r1} \
           --output_fasta2 {output.r2} \
