@@ -5,7 +5,7 @@ aligning them and calling peaks.
 
 ## Layout
 - `Snakefile.py` – entry point for the workflow.
-- `config.yaml` – configuration options.
+- `config.yaml` – configuration options. Bias exponents (`tf_exp`, `gc_exp`, `acc_exp`) allow reshaping TF, GC and accessibility PMFs.
 - `envs/` – Conda environment definitions.
 - `rules/` – Snakemake rule files.
 - `scripts/` – helper scripts used by the rules.
