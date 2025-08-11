@@ -252,9 +252,14 @@ def create_pmf_all_chroms(
             dtype=float,
         )
         length = base.shape[0]
-        tf_centers = rng.integers(0, length, size=max(1, tf_peak_count))
-        tf_bias = build_tf_bias_pmf(length, tf_centers.tolist(), tf_sigma, tf_enrichment,
-                                    exp=tf_exp)
+        tf_centers = (
+            rng.integers(0, length, size=tf_peak_count)
+            if tf_peak_count > 0
+            else np.array([], dtype=int)
+        )
+        tf_bias = build_tf_bias_pmf(
+            length, tf_centers.tolist(), tf_sigma, tf_enrichment, exp=tf_exp
+        )
         gc_bias = build_gc_bias_pmf(seq, gc_params, fragment_length, exp=gc_exp)
         acc_bias = build_accessibility_bias_pmf(length, accessibility_bed, acc_weight,
                                                chrom_id.split()[0], exp=acc_exp)
