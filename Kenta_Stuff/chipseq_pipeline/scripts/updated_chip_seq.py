@@ -112,20 +112,6 @@ if seed is not None:
     np.random.seed(seed)
 
 
-'''
-Notes for random_genome_1.fa.gz:
-______________________
-
-- total bp is 600
-- with coverage =1, and k=20, we should see 30 samples getting pulled (CHECKED)
-- also the chrom frequencies should be 1/6, 2/6, 3/6
-    - meaning when we look at percentage of reads generated with respect to which chromosomes...
-    - we should observe that it converges to above probabilities (CHECKED)
-
-- to check if peaks are added properly we can just graph them (CHECKED)
-- we should also check if experiment samples have similar distributions to experiment pmf (CHECKED)
-'''
-
 
 """
 Functions
@@ -137,9 +123,6 @@ def reverse_complement(seq: str) -> str:
     """Return reverse complement of DNA sequence."""
     table = str.maketrans('ACGTacgt', 'TGCAtgca')
     return seq.translate(table)[::-1]
-
-
-
 
 def build_tf_bias_pmf(length: int, peaks: List[int], sigma: float,
                       enrichment: float, exp: float = 1.0) -> np.ndarray:
