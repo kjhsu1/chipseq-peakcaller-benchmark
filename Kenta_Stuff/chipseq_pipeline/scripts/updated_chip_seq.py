@@ -29,7 +29,7 @@ _________________________
 
 
 """
-Global Variables
+Command line Arguments
 ________________
 """
 
