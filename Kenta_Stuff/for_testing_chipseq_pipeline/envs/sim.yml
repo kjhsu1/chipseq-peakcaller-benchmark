@@ -1,0 +1,10 @@
+name: sim
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python
+  - hydra-core
+  - mlflow
+  - pandas
