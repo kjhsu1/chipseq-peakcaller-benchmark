@@ -16,6 +16,7 @@ dependencies:
   - pandas
   - bowtie2
   - samtools
+  - bwa                  # Added: BWA for mapping (includes bwa mem)
   - pip
   - pip:
       - macs2
