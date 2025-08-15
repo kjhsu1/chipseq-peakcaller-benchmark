@@ -40,13 +40,13 @@ gc_bias_paths:
 # Both callers must have genome_size per genome; flags are optional.
 peakcallers:
   macs2:
-    flags: "--nomodel --keep-dup all"
+    flags: ""
     genome_size:
-      ce11_1pct: "1.0e7"    # or 'ce' if you prefer shorthand
+      ce11_1pct: "1.0e6"    # or 'ce' if you prefer shorthand
   epic2:
     flags: ""               # e.g., "--q-value 0.05 --binsize 200" if you like
     genome_size:
-      ce11_1pct: "1.0e7"
+      ce11_1pct: "1.0e6"
 
 # Alignment indexes keyed by genome
 indexes:
