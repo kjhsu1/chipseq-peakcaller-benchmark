@@ -47,8 +47,8 @@ peakcallers:
 # Alignment indexes keyed by genome
 indexes:
   ce11_1pct:
-    bowtie2_index: "data/indexes/ce11_1pct/bowtie2_index/index"
-    bwa_index:     "data/indexes/ce11_1pct/bwa_index/index"
+    bowtie2_index: "data/indexes/ce11_1pct/bowtie2_index/ce11_1pct"
+    bwa_index:     "data/indexes/ce11_1pct/bwa_index/ce11_1pct"
 
 # Where to store final per-run parameter manifest
 params_table: "results/params/run_params.csv"
