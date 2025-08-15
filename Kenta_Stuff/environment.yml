@@ -14,4 +14,5 @@ dependencies:
   - statsmodels
   - bowtie2
   - samtools
+  - bwa
   - macs2
