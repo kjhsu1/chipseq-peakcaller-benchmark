@@ -16,7 +16,7 @@ def epic2_inputs(wc):
 
 # MACS2
 rule call_peaks_macs2:
-    input: macs2_inputs
+    input: unpack(macs2_inputs)
     output:
         narrow = "results/{run_id}/peaks/macs2/{run_id}_peaks.narrowPeak"
     params:
@@ -34,7 +34,7 @@ rule call_peaks_macs2:
 
 # EPIC2
 rule call_peaks_epic2:
-    input: epic2_inputs
+    input: unpack(epic2_inputs)
     output:
         narrow = "results/{run_id}/peaks/epic2/{run_id}_peaks.narrowPeak"
     params:
