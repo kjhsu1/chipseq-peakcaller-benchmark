@@ -11,9 +11,9 @@ fragment_length: [150]     # shared
 read_length:     [38]      # shared
 tf_sigma:        [5]       # treatment only
 tf_enrich:       [1]       # treatment only
-tf_exp:          [1.0]     # exponent for TF PMF (<1 flattens, >1 sharpens)
-gc_exp:          [1.0]     # exponent for GC PMF (<1 flattens, >1 sharpens)
-acc_exp:         [1.0]     # exponent for accessibility PMF (<1 flattens, >1 sharpens)
+tf_exp:          [2.0]     # exponent for TF PMF (<1 flattens, >1 sharpens)
+gc_exp:          [0.1]     # exponent for GC PMF (<1 flattens, >1 sharpens)
+acc_exp:         [0.1]     # exponent for accessibility PMF (<1 flattens, >1 sharpens)
 nb_k:            [5]       # shared dispersion
 
 # NEW: aligners used in the sweep (must match alignment.smk output folder names)
@@ -40,9 +40,9 @@ gc_bias_paths:
 # Both callers must have genome_size per genome; flags are optional.
 peakcallers:
   macs2:
-    flags: "--nomodel --keep-dup all"
+    flags: ""
     genome_size:
-      ce11_1pct: "1.0e7"    # or 'ce' if you prefer shorthand
+      ce11_1pct: "1.0e6"    # or 'ce' if you prefer shorthand
 
 # Alignment indexes keyed by genome
 indexes:

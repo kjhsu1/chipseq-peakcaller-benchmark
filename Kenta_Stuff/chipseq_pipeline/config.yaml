@@ -40,15 +40,15 @@ gc_bias_paths:
 # MACS2 needs a genome_size; EPIC2 uses chrom.sizes and an optional effective genome fraction.
 peakcallers:
   macs2:
-    flags: "--nomodel --keep-dup all"
+    flags: ""
     genome_size:
-      ce11_1pct: "1.0e7"    # or 'ce' if you prefer shorthand
+      ce11_1pct: "1.0e6"    # or 'ce' if you prefer shorthand
   epic2:
     flags: "--guess-bampe"  # e.g., add "--q-value 0.05 --binsize 200" if desired
     chromsizes:
       ce11_1pct: "data/genomes/ce11_1pct/chrom.sizes"
     effective_genome_fraction:
-      ce11_1pct: 1.0
+      ce11_1pct: 0.9
 
 # Alignment indexes keyed by genome
 indexes:

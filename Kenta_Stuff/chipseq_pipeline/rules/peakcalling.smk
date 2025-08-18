@@ -21,7 +21,8 @@ rule call_peaks_macs2:
         narrow = "results/{run_id}/peaks/macs2/{run_id}_peaks.narrowPeak"
     params:
         gsize = lambda wc: macs2_gsize(find_row(wc.run_id)),
-        flags = lambda wc: macs2_flags()
+        flags = lambda wc: macs2_flags(),
+        outdir = lambda wc: f"results/{wc.run_id}/peaks/macs2"
     shell:
         r"""
         macs2 callpeak \
@@ -29,7 +30,8 @@ rule call_peaks_macs2:
           -c {input.ctrl} \
           -g {params.gsize} \
           -n {wildcards.run_id} \
-          {params.flags}
+          {params.flags} \
+          --outdir {params.outdir}
         """
 
 # EPIC2 (custom genome, paired-end BAMs)
