@@ -46,9 +46,9 @@ peakcallers:
   epic2:
     flags: "--guess-bampe"  # e.g., add "--q-value 0.05 --binsize 200" if desired
     chromsizes:
-      ce11_1pct: "data/genomes/ce11_1pct/chrom.sizes"
+      ce11_1pct: "data/genomes/ce11_1pct/chrom_sizes.tsv"
     effective_genome_fraction:
-      ce11_1pct: 0.9
+      ce11_1pct: 1.0
 
 # Alignment indexes keyed by genome
 indexes:
