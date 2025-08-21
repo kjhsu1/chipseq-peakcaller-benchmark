@@ -38,17 +38,20 @@ rule call_peaks_macs2:
 rule call_peaks_epic2:
     input: unpack(epic2_inputs)
     output:
-        narrow = "results/{run_id}/peaks/epic2/{run_id}_peaks.narrowPeak"
+        bed = "results/{run_id}/peaks/epic2/{run_id}_domains.bed"
     params:
-        gsize = lambda wc: epic2_gsize(find_row(wc.run_id)),
-        flags = lambda wc: epic2_flags()
+        chromsizes = lambda wc: config["peakcallers"]["epic2"]["chromsizes"][find_row(wc.run_id)["genome"]],
+        egf        = lambda wc: config["peakcallers"]["epic2"]["effective_genome_fraction"][find_row(wc.run_id)["genome"]],
+        flags      = lambda wc: epic2_flags()
     shell:
         r"""
-        epic2 --treatment {input.treat} \
-              --control  {input.ctrl} \
-              --genome-size {params.gsize} \
-              --output {output.narrow} \
-              {params.flags}
+        epic2 \
+          --treatment {input.treat} \
+          --control  {input.ctrl} \
+          --chromsizes {params.chromsizes} \
+          --effective-genome-fraction {params.egf} \
+          --output {output.bed} \
+          {params.flags}
         """
 
 # Collector returns only the peak files for the caller chosen in SAMPLES
@@ -59,7 +62,7 @@ def peaks_all():
         if r["peakcaller"] == "macs2":
             outs.append(f"results/{rid}/peaks/macs2/{rid}_peaks.narrowPeak")
         else:  # epic2
-            outs.append(f"results/{rid}/peaks/epic2/{rid}_peaks.narrowPeak")
+            outs.append(f"results/{rid}/peaks/epic2/{rid}_domains.bed")
     return outs
 
 rule peaks_done:
