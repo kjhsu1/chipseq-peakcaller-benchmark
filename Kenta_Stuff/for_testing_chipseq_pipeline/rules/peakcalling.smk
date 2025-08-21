@@ -36,6 +36,7 @@ rule call_peaks_macs2:
 
 # EPIC2
 rule call_peaks_epic2:
+    conda: "../envs/peak.yml"
     input: unpack(epic2_inputs)
     output:
         bed = "results/{run_id}/peaks/epic2/{run_id}_domains.bed"

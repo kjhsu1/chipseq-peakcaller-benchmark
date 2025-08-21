@@ -1,22 +1,20 @@
 name: background_project
 channels:
-  - conda-forge          # arm64 binaries come first
+  - conda-forge
   - bioconda
   - defaults
-
 dependencies:
-  # pin the toolchain so MACS2 can build
-  - python=3.11          # 3.12 will break Cython
-  - cython<3             # MACS2 requires 0.29.x
-  - wheel                # lets pip build wheels cleanly
-  # workflow stack
+  - python=3.11
+  - cython<3
+  - wheel
   - snakemake
   - hydra-core
   - mlflow
   - pandas
   - bowtie2
   - samtools
-  - bwa                  # Added: BWA for mapping (includes bwa mem)
+  - bwa
+  - pysam>=0.23      # ← moved here (Conda layer)
   - pip
   - pip:
       - macs2
