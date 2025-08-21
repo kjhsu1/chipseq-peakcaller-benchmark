@@ -59,7 +59,6 @@ def bwa_index(row):     return config["indexes"][row["genome"]]["bwa_index"]
 
 def macs2_gsize(row):   return config["peakcallers"]["macs2"]["genome_size"][row["genome"]]
 def macs2_flags():      return config["peakcallers"]["macs2"].get("flags", "")
-def epic2_gsize(row):   return config["peakcallers"]["epic2"]["genome_size"][row["genome"]]
 def epic2_flags():      return config["peakcallers"]["epic2"].get("flags", "")
 
 # ---------- parameter manifest ----------

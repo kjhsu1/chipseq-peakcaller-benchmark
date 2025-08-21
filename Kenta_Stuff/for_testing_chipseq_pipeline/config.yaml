@@ -37,12 +37,18 @@ gc_bias_paths:
   gcB: "data/gc_bias/gcB.csv"
 
 # Peak-caller parameters (values here are NOT swept; only the *caller names* are)
-# Both callers must have genome_size per genome; flags are optional.
+# MACS2 needs a genome size; EPIC2 uses chrom.sizes and an effective genome fraction.
 peakcallers:
   macs2:
     flags: ""
     genome_size:
       ce11_1pct: "1.0e6"    # or 'ce' if you prefer shorthand
+  epic2:
+    flags: "--guess-bampe"  # e.g., add "--q-value 0.05 --binsize 200" if desired
+    chromsizes:
+      ce11_1pct: "data/genomes/ce11_1pct/chrom_sizes.tsv"
+    effective_genome_fraction:
+      ce11_1pct: 1.0
 
 # Alignment indexes keyed by genome
 indexes:
