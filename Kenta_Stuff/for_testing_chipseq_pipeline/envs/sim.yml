@@ -1,4 +1,4 @@
-name: peak
+name: sim
 channels:
   - conda-forge
   - bioconda

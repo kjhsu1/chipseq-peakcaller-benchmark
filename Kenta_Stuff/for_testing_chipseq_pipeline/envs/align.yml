@@ -1,4 +1,4 @@
-name: peak
+name: align
 channels:
   - conda-forge
   - bioconda
