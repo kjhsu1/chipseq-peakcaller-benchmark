@@ -3,18 +3,32 @@ channels:
   - conda-forge
   - bioconda
   - defaults
+
 dependencies:
-  - python=3.11
-  - cython<3
+  # Core and build tools
+  - python=3.10
+  - pip
   - wheel
+  - cython<3
+
+  # Scientific stack
+  - numpy
+  - scipy
+  - pandas
+  - natsort
+
+  # Bioinformatics tools
+  - bowtie2
+  - bwa
+  - samtools
+  - pysam>=0.23
+
+  # Workflow tools
   - snakemake
   - hydra-core
   - mlflow
-  - pandas
-  - bowtie2
-  - samtools
-  - bwa
-  - pysam>=0.23      # ← moved here (Conda layer)
-  - pip
+
+  # pip packages installed after conda packages
   - pip:
       - macs2
+      - epic2==0.0.52
