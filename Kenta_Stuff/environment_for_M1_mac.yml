@@ -10,6 +10,7 @@ dependencies:
   - pip
   - wheel
   - cython<3
+  - mamba
 
   # Scientific stack
   - numpy
