@@ -1,0 +1,38 @@
+name: background_project
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+
+dependencies:
+  # ---- Core / solver ----
+  - python=3.10
+  - pip
+  - wheel
+  - cython<3
+  - mamba
+
+  # ---- Scientific stack ----
+  - numpy
+  - scipy
+  - pandas
+  - natsort
+
+  # ---- Bioinformatics tools (prebuilt linux-64) ----
+  - bowtie2=2.5.*         # 2.5.x series is stable on jammy
+  - bwa=0.7.17
+  - samtools=1.19.*
+  - pysam>=0.23
+
+  # ---- Workflow / ML ----
+  - snakemake-minimal=8.*  # modern Snakemake; pair with conda>=24.7 when possible
+  - hydra-core
+  - mlflow
+
+  # ---- Peak callers via conda (bioconda) ----
+  - macs2                 # use conda build on linux-64 instead of pip
+  - epic2=0.0.52
+
+  # ---- pip (keep minimal; only what’s not in conda) ----
+  - pip:
+      # (empty for now)
