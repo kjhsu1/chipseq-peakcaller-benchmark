@@ -38,7 +38,7 @@ gc_bias_paths:
 # MACS2 needs a genome size; EPIC2 uses chrom.sizes and an effective genome fraction.
 peakcallers:
   macs2:
-    flags: ""
+    flags: "-f BAMPE"
     genome_size:
       ce11_1pct: "1.0e6"
   epic2:
