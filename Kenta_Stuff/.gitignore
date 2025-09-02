@@ -1,0 +1,12 @@
+# old stuff
+chipseq_pipeline/
+snakemake_stuff/
+
+# genome idxes are too large
+for_testing_chipseq_pipeline/data/indexes/
+
+# the results of snakemake workflow
+results/
+
+# pycache
+__pycache__
