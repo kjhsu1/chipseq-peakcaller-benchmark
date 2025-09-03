@@ -6,7 +6,7 @@ channels:
 
 dependencies:
   # ---- Core / solver ----
-  - python=3.10
+  - python
   - pip
   - wheel
   - cython<3
