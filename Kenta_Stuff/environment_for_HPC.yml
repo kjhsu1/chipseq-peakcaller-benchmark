@@ -34,5 +34,4 @@ dependencies:
   - epic2=0.0.52
 
   # ---- pip (keep minimal; only what’s not in conda) ----
-  - pip:
-      # (empty on purpose)
+  # (empty on purpose)
