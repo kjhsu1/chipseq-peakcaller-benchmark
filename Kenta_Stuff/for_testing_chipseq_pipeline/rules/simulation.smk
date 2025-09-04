@@ -31,7 +31,7 @@ rule simulate_reads:
         acc_exp   = lambda wc: find_row(wc.run_id)["acc_exp"],
     shell:
         r"""
-        python -m scripts.updated_chip_seq.py \
+        python -m scripts.updated_chip_seq \
           --fasta {params.fasta} \
           --coverage {params.cov} \
           --tf_peak_count {params.tfcount} \
