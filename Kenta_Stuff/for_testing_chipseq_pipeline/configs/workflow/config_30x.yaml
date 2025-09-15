@@ -1,0 +1,60 @@
+# config.yaml
+# Sweep knobs (edit values to your study)
+genomes:
+  - "ce11_1pct"               # keys into genome_paths
+
+coverage_treat: [30]
+coverage_ctrl:  [1]
+
+tf_peak_count_treat: [0]   # treatment only; control fixed to 0
+fragment_length: [150]     # shared
+read_length:     [38]      # shared
+tf_sigma:        [5]       # treatment only
+tf_enrich:       [1]       # treatment only
+tf_exp:          [2.0]     # exponent for TF PMF (<1 flattens, >1 sharpens)
+gc_exp:          [0.1]     # exponent for GC PMF (<1 flattens, >1 sharpens)
+acc_exp:         [0.1]     # exponent for accessibility PMF (<1 flattens, >1 sharpens)
+nb_k:            [5]       # shared dispersion
+
+# NEW: aligners used in the sweep (must match alignment.smk output folder names)
+aligners: ["bowtie2"]
+
+# Bias sources selected by name in the sweep (shared across conds)
+acc_beds:     ["bedA"]          # keys into accessibility_paths[genome]
+gc_bias_sets: ["gcA"]            # keys into gc_bias_paths
+
+# Name→path maps
+genome_paths:
+  ce11_1pct: "data/genomes/ce11_1pct/ce11_1pct.fa"
+
+accessibility_paths:
+  ce11_1pct:
+    bedA: "data/accessibility/ce11_1pct/bedA.bed"
+    bedB: "data/accessibility/ce11_1pct/bedB.bed"
+
+gc_bias_paths:
+  gcA: "data/gc_bias/gcA.csv"
+  gcB: "data/gc_bias/gcB.csv"
+
+# Peak-caller parameters (values here are NOT swept; only the *caller names* are)
+# MACS2 needs a genome size; EPIC2 uses chrom.sizes and an effective genome fraction.
+peakcallers:
+  macs2:
+    flags: ""
+    genome_size:
+      ce11_1pct: "1.0e6"    # or 'ce' if you prefer shorthand
+  epic2:
+    flags: "--guess-bampe"  # e.g., add "--q-value 0.05 --binsize 200" if desired
+    chromsizes:
+      ce11_1pct: "data/genomes/ce11_1pct/chrom_sizes.tsv"
+    effective_genome_fraction:
+      ce11_1pct: 1.0
+
+# Alignment indexes keyed by genome
+indexes:
+  ce11_1pct:
+    bowtie2_index: "data/indexes/ce11_1pct/bowtie2_index/ce11_1pct"
+    bwa_index:     "data/indexes/ce11_1pct/bwa_index/ce11_1pct"
+
+# Where to store final per-run parameter manifest
+params_table: "results/params/run_params.csv"
