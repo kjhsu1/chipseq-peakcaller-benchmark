@@ -1,5 +1,4 @@
 # old stuff
-chipseq_pipeline/
 snakemake_stuff/
 
 # genome idxes are too large
