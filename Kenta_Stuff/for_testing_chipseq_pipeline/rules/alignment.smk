@@ -11,12 +11,18 @@ rule align_bowtie2:
     threads: 4
     params:
         bt2 = lambda wc: bowtie2_index(find_row(wc.run_id))
+    resources:
+        mem_mb = 4000,          # 4 GB
+        runtime = 60            # 60 minutes
+    benchmark:
+        lambda wc, threads, attempt:
+            f"bench/align/bowtie2/{wc.run_id}_{wc.cond}_t{threads}_a{attempt}.tsv"
     shell:
         r"""
-        bowtie2 -f -x {params.bt2} -1 {input.r1} -2 {input.r2} \
+        bowtie2 -f -x {params.bt2} -1 {input.r1} -2 {input.r2} --threads {threads}\
           | samtools view -b - \
-          | samtools sort -o {output.bam}
-        samtools index {output.bam}
+          | samtools sort -@ {threads} -o {output.bam} -
+        samtools index -@ {threads} {output.bam}
         """
 
 # BWA-MEM
