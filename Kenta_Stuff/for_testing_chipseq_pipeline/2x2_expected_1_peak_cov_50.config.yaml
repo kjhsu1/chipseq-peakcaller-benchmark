@@ -1,0 +1,56 @@
+# all_comb_alg_peak.config.yaml
+# Sweep across both aligners and peakcallers to create four runs
+
+genomes:
+  - "ce11_1pct"
+
+coverage_treat: [50]
+coverage_ctrl:  [50]
+
+tf_peak_count_treat: [0]
+fragment_length: [150]
+read_length:     [38]
+tf_sigma:        [5]
+tf_enrich:       [1000]
+tf_exp:          [10.0]
+gc_exp:          [0.1]
+acc_exp:         [0.1]
+nb_k:            [5]
+
+aligners: ["bowtie2", "bwa-mem"]
+
+acc_beds:     ["bedA"]
+gc_bias_sets: ["gcA"]
+
+genome_paths:
+  ce11_1pct: "data/genomes/ce11_1pct/ce11_1pct.fa"
+
+accessibility_paths:
+  ce11_1pct:
+    bedA: "data/accessibility/ce11_1pct/bedA.bed"
+    bedB: "data/accessibility/ce11_1pct/bedB.bed"
+
+gc_bias_paths:
+  gcA: "data/gc_bias/gcA.csv"
+  gcB: "data/gc_bias/gcB.csv"
+
+# Peak-caller parameters (values here are NOT swept; only the caller names are)
+# MACS2 needs a genome size; EPIC2 uses chrom.sizes and an effective genome fraction.
+peakcallers:
+  macs2:
+    flags: "-f BAMPE"
+    genome_size:
+      ce11_1pct: "1.0e6"
+  epic2:
+    flags: "--guess-bampe"
+    chromsizes:
+      ce11_1pct: "data/genomes/ce11_1pct/chrom_sizes.tsv"
+    effective_genome_fraction:
+      ce11_1pct: 1.0
+
+indexes:
+  ce11_1pct:
+    bowtie2_index: "data/indexes/ce11_1pct/bowtie2_index/ce11_1pct"
+    bwa_index:     "data/indexes/ce11_1pct/bwa_index/ce11_1pct"
+
+params_table: "results/params/run_params.csv"

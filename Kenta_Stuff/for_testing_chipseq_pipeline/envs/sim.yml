@@ -1,0 +1,34 @@
+name: sim
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+
+dependencies:
+  # Core and build tools
+  - python=3.10
+  - pip
+  - wheel
+  - cython<3
+
+  # Scientific stack
+  - numpy
+  - scipy
+  - pandas
+  - natsort
+
+  # Bioinformatics tools
+  - bowtie2
+  - bwa
+  - samtools
+  - pysam>=0.23
+
+  # Workflow tools
+  - snakemake
+  - hydra-core
+  - mlflow
+
+  # pip packages installed after conda packages
+  - pip:
+      - macs2
+      - epic2==0.0.52
