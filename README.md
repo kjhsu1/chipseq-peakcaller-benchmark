@@ -71,21 +71,25 @@ This project utilizes Conda and Mamba for dependency management, ensuring that a
 
 Bash
 
-`# Clone the repository
+```
+# Clone the repository
 git clone <repo_url>
-cd Kenta_Stuff/chipseq_pipeline`
+cd Kenta_Stuff/chipseq_pipeline
+```
 
 **Execution**
 The following command is an example of how to execute the pipeline for a parameter sweep defined in the configuration:
 
 Bash
 
-`snakemake -s Snakefile.py \
+```
+snakemake -s Snakefile.py \
   --configfile config.yaml \
   --use-conda \
   --cores 6 \
   --keep-going \
-  --rerun-incomplete`
+  --rerun-incomplete
+```
 
 ## Future Directions
 
