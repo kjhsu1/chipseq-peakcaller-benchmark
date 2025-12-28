@@ -46,7 +46,7 @@ The repository is structured to maintain a clear separation between core logic, 
 
 Bash
 
-`.
+```.
 ├── config.yaml             # Study parameters (coverage, TF enrich, etc.) for the parameter sweep
 ├── Snakefile.py            # Main workflow entry point
 ├── data/                   # Input genomes, accessibility tracks, and bias profiles
@@ -60,7 +60,8 @@ Bash
 ├── scripts/                # Core Python ChIP-seq simulation (updated_chip_seq.py)
 ├── temp/                   # Intermediate FASTA and PMF files for treatment and control
 ├── tests/                  # Unit tests
-└── AGENTS.md`
+└── AGENTS.md
+```
 
 ## Reproducibility and Usage
 
