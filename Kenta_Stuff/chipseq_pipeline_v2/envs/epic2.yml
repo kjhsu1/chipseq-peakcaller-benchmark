@@ -1,0 +1,12 @@
+name: epic2
+channels: [conda-forge, bioconda, defaults]
+dependencies:
+  - python=3.10
+  - numpy
+  - cython<3
+  - pip
+  - htslib>=1.21,<1.23
+  - samtools>=1.21,<1.23
+  - pysam=0.22.1         # match epic2 recipe: <0.23
+  - pip:
+      - epic2==0.0.52

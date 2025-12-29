@@ -1,0 +1,12 @@
+# Show commands & keep going on independent failures
+printshellcmds: true
+keep-going: true
+latency-wait: 60
+retries: 0
+
+# Fence the DAG to just this rule (plus its real prerequisites)
+allowed-rules: [align_bowtie2]
+until: align_bowtie2
+
+# Optional: cap local cores if you run without a cluster profile
+cores: 4
