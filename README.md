@@ -1,6 +1,6 @@
 # ChIP-seq Simulation and Benchmarking Framework
 
-> Project Note: This work was originally initiated as a collaborative effort involving three members of the Korf Lab. However, the comprehensive design, implementation, and refinement of the framework presented here are the results of my individual development. The contents of Kenta_Stuff/chipseq_pipeline represent the primary, up to date workflow and the culmination of my independent research and engineering effort.
+> Project Note: This work was originally initiated as a collaborative effort involving three members of the Korf Lab. However, the comprehensive design, implementation, and refinement of the framework presented here are the results of my individual development. The contents of Kenta_Stuff/chipseq_pipeline_v2 represent the primary, up to date workflow and the culmination of my independent research and engineering effort.
 > 
 
 ## Introduction
@@ -10,6 +10,8 @@ Previous research highlights that omitting or under-sequencing control reads res
 By utilizing a simulation program built on hierarchical modeling of key biases (TF binding, GC content, and chromatin accessibility) and flexible parameterization of over twelve variables (e.g. coverage, peak width), this pipeline enables both truth-aware evaluation (Precision, Recall, and AUPRC) and truth-free metrics (FRiP and p-value distributions). The ultimate goal of this framework is to provide a reproducible resource for stress-testing peak callers, illuminating the conditions under which control sequencing is most critical and guiding best practices for ChIP-seq experimental design.
 
 ## Workflow Architecture
+
+![DAG diagram](Kenta_Stuff/chipseq_pipeline_v2/dag.png)
 
 The pipeline is orchestrated using Snakemake to provide a modular and reproducible environment for high-performance computing. The workflow manages data flow through the following stages:
 
@@ -48,7 +50,7 @@ Bash
 
 ```.
 ├── config.yaml             # Study parameters (coverage, TF enrich, etc.) for the parameter sweep
-├── Snakefile.py            # Main workflow entry point
+├── Snakefile.py            # Main Snakefile
 ├── data/                   # Input genomes, accessibility tracks, and bias profiles
 │   ├── accessibility/      # BED files for euchromatin regions
 │   ├── gc_bias/            # Experimentally derived GC curves (CSV)
