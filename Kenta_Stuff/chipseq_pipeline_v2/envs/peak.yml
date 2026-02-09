@@ -21,6 +21,7 @@ dependencies:
   - bowtie2
   - bwa
   - samtools
+  - deeptools
   - pysam>=0.23
 
   # Workflow tools
