@@ -9,7 +9,7 @@ This program will print FASTA of reads generated based on user defined arguments
 
 import random
 import os
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 import numpy as np
 import pandas as pd
@@ -48,7 +48,7 @@ parser.add_argument('--read_length', type=int, default=38,
     help='Length (bp) of each mate-pair read (typical kits: 38 bp or 100 bp).')
 parser.add_argument('--tf_sigma', type=float, default=5.0,
     help='Standard deviation for TF-binding bias')
-parser.add_argument('--tf_enrichment', type=float, default=1.0,
+parser.add_argument('--tf_enrich', '--tf_enrichment', dest='tf_enrichment', type=float, default=1.0,
     help='Enrichment factor for TF-binding bias')
 parser.add_argument('--accessibility_bed', type=str, default=None,
     help='BED file describing open chromatin intervals')
@@ -72,6 +72,8 @@ parser.add_argument('--output_fasta2', required=True,
     help='Path to write mate 2 (R2) reads in FASTA format.')
 parser.add_argument('--pmf_csv', type=str, default=None,
     help='Path to CSV file storing PMF and variance per bin')
+parser.add_argument('--planted_peaks_bed', type=str, default=None,
+    help='Path to BED file storing planted peak centers (1-bp intervals).')
 
 args, _ = parser.parse_known_args()
 
@@ -94,6 +96,7 @@ nb_k = args.nb_k
 output_fasta1 = args.output_fasta1
 output_fasta2 = args.output_fasta2
 pmf_csv = args.pmf_csv
+planted_peaks_bed = args.planted_peaks_bed
 
 if not pmf_csv and fasta:
     base = os.path.splitext(os.path.basename(fasta))[0]
@@ -218,10 +221,11 @@ def create_pmf_all_chroms(
     tf_exp: float,
     gc_exp: float,
     acc_exp: float,
-) -> Dict[str, List[float]]:
+) -> Tuple[Dict[str, List[float]], Dict[str, List[int]]]:
     """Build PMF dictionary for all chromosomes with bias modeling."""
 
     genome_pmfs = {}
+    planted_peaks = {}
     rng = np.random.default_rng(seed)
     gc_params = {'csv': gc_bias_params}
     for chrom_id, seq in lib.read_fasta(fasta):
@@ -240,6 +244,7 @@ def create_pmf_all_chroms(
             if tf_peak_count > 0
             else np.array([], dtype=int)
         )
+        planted_peaks[chrom_id] = tf_centers.astype(int).tolist()
         tf_bias = build_tf_bias_pmf(
             length, tf_centers.tolist(), tf_sigma, tf_enrichment, exp=tf_exp
         )
@@ -249,7 +254,7 @@ def create_pmf_all_chroms(
         combined = base * tf_bias * gc_bias * acc_bias
         pmf = combined / combined.sum()
         genome_pmfs[chrom_id] = pmf.tolist()
-    return genome_pmfs
+    return genome_pmfs, planted_peaks
 
 
 def write_pmf_csv(genome_pmfs: Dict[str, List[float]], path: str) -> None:
@@ -262,6 +267,19 @@ def write_pmf_csv(genome_pmfs: Dict[str, List[float]], path: str) -> None:
             rows.append((chrom_id, idx, p, v))
     df = pd.DataFrame(rows, columns=['chrom', 'bin_idx', 'pmf', 'variance'])
     df.to_csv(path, index=False)
+
+
+def write_planted_peaks_bed(planted_peaks: Dict[str, List[int]], path: str) -> None:
+    """Write planted peak centers as a 1-bp BED file."""
+    peak_idx = 1
+    with open(path, 'w') as fh:
+        for chrom_id, centers in planted_peaks.items():
+            chrom = chrom_id.split()[0]
+            for center in centers:
+                start = int(center)
+                end = start + 1
+                fh.write(f"{chrom}\t{start}\t{end}\tpeak_{peak_idx}\n")
+                peak_idx += 1
 
 def sample_genome(
     fasta: str,
@@ -334,7 +352,7 @@ def write_r1_r2_fastas(paired_reads, r1_path, r2_path):
 if fasta:
     if read_length > k:
         raise ValueError('read_length must not exceed fragment_length')
-    genome_pmf = create_pmf_all_chroms(
+    genome_pmf, planted_peaks = create_pmf_all_chroms(
         fasta,
         k,
         tf_peak_count,
@@ -361,7 +379,8 @@ if fasta:
     
     if pmf_csv:
         write_pmf_csv(genome_pmf, pmf_csv)
-
+    if planted_peaks_bed:
+        write_planted_peaks_bed(planted_peaks, planted_peaks_bed)
 
 
 

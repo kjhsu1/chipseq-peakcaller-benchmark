@@ -18,3 +18,9 @@ source ../snakemake_stuff/setup.sh
 pytest tests
 ```
 
+## Config Conventions
+- `peakcaller_list` controls which callers are included in the sweep.
+- `peakcallers` is the caller-parameter dictionary (flags/genome sizes/etc).
+- Simulation emits `planted_peaks.bed` for each `{run_id}/{cond}`:
+  - treatment contains 1-bp planted TF center intervals
+  - control is empty when `tf_peak_count_ctrl = 0`

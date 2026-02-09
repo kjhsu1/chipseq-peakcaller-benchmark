@@ -1,4 +1,4 @@
-# simulation.smk — emits FASTA R1/R2 and pmf.csv per (run_id, cond)
+# simulation.smk — emits FASTA R1/R2, pmf.csv, and planted peak centers per (run_id, cond)
 
 def sim_outputs_for(run_id, cond):
     base = f"results/{run_id}/{cond}"
@@ -6,6 +6,7 @@ def sim_outputs_for(run_id, cond):
         f"{base}/reads_R1.fasta",
         f"{base}/reads_R2.fasta",
         f"{base}/pmf.csv",
+        f"{base}/planted_peaks.bed",
     ]
 
 rule simulate_reads:
@@ -13,6 +14,7 @@ rule simulate_reads:
         r1  = "results/{run_id}/{cond}/reads_R1.fasta",
         r2  = "results/{run_id}/{cond}/reads_R2.fasta",
         pmf = "results/{run_id}/{cond}/pmf.csv",
+        peaks = "results/{run_id}/{cond}/planted_peaks.bed",
     params:
         cov       = lambda wc: (find_row(wc.run_id)["coverage_ctrl"]
                                 if wc.cond == "con" else find_row(wc.run_id)["coverage_treat"]),
@@ -47,7 +49,8 @@ rule simulate_reads:
           --nb_k {params.nb_k} \
           --output_fasta1 {output.r1} \
           --output_fasta2 {output.r2} \
-          --pmf_csv {output.pmf}
+          --pmf_csv {output.pmf} \
+          --planted_peaks_bed {output.peaks}
         """
 
 def sim_all():
@@ -59,4 +62,3 @@ def sim_all():
 
 rule sim_done:
     input: sim_all()
-

@@ -4,14 +4,25 @@ configfile: "config.yaml"
 
 from itertools import product
 
+def get_peakcaller_list(cfg):
+    if "peakcaller_list" in cfg:
+        return cfg["peakcaller_list"]
+    if isinstance(cfg.get("peakcallers"), list):
+        return cfg["peakcallers"]
+    raise ValueError(
+        "Config must define 'peakcaller_list' (preferred) or legacy list-valued "
+        "'peakcallers'. The 'peakcallers' parameter dictionary is not a sweep list."
+    )
+
 # ---------- sweep catalog ----------
 def build_samples(cfg):
     S = []
     rid = 0
+    peakcaller_list = get_peakcaller_list(cfg)
     for genome, acc_key, gc_key, frag, read, nbk, aligner, peakcaller, tf_exp, gc_exp, acc_exp in product(
         cfg["genomes"], cfg["acc_beds"], cfg["gc_bias_sets"],
         cfg["fragment_length"], cfg["read_length"], cfg["nb_k"],
-        cfg["aligners"], cfg["peakcallers"],
+        cfg["aligners"], peakcaller_list,
         cfg["tf_exp"], cfg["gc_exp"], cfg["acc_exp"]
     ):
         for cov_t, cov_c in product(cfg["coverage_treat"], cfg["coverage_ctrl"]):
@@ -59,7 +70,7 @@ def bwa_index(row):     return config["indexes"][row["genome"]]["bwa_index"]
 
 def macs2_gsize(row):   return config["peakcallers"]["macs2"]["genome_size"][row["genome"]]
 def macs2_flags():      return config["peakcallers"]["macs2"].get("flags", "")
-def epic2_flags():      return config["peakcallers"]["epic2"].get("flags", "")
+def epic2_flags():      return config["peakcallers"].get("epic2", {}).get("flags", "")
 
 # ---------- parameter manifest ----------
 rule write_params_table:
@@ -81,4 +92,3 @@ rule all:
         rules.peaks_done.input,
         config["params_table"]
     default_target: True
-

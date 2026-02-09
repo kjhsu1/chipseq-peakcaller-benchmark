@@ -18,6 +18,7 @@ nb_k:            [5]       # shared dispersion
 
 # NEW: aligners used in the sweep (must match alignment.smk output folder names)
 aligners: ["bowtie2"]
+peakcaller_list: ["macs2", "epic2"]
 
 # Bias sources selected by name in the sweep (shared across conds)
 acc_beds:     ["bedA"]          # keys into accessibility_paths[genome]
@@ -36,7 +37,7 @@ gc_bias_paths:
   gcA: "data/gc_bias/gcA.csv"
   gcB: "data/gc_bias/gcB.csv"
 
-# Peak-caller parameters (values here are NOT swept; only the *caller names* are)
+# Peak-caller parameter dictionary (not the sweep list; use peakcaller_list above)
 # MACS2 needs a genome size; EPIC2 uses chrom.sizes and an effective genome fraction.
 peakcallers:
   macs2:
