@@ -253,14 +253,14 @@ def create_pmf_all_chroms(
 
 
 def write_pmf_csv(genome_pmfs: Dict[str, List[float]], path: str) -> None:
-    """Write PMF and variance arrays to CSV."""
+    """Write PMF and variance arrays to CSV, including chromosome."""
     rows = []
-    for pmf in genome_pmfs.values():
+    for chrom_id, pmf in genome_pmfs.items():
         arr = np.asarray(pmf, dtype=float)
         var = arr * (1 - arr)
         for idx, (p, v) in enumerate(zip(arr, var)):
-            rows.append((idx, p, v))
-    df = pd.DataFrame(rows, columns=['bin_idx', 'pmf', 'variance'])
+            rows.append((chrom_id, idx, p, v))
+    df = pd.DataFrame(rows, columns=['chrom', 'bin_idx', 'pmf', 'variance'])
     df.to_csv(path, index=False)
 
 def sample_genome(
@@ -361,7 +361,6 @@ if fasta:
     
     if pmf_csv:
         write_pmf_csv(genome_pmf, pmf_csv)
-
 
 
 
