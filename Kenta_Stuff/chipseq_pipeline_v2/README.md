@@ -18,6 +18,19 @@ source ../snakemake_stuff/setup.sh
 pytest tests
 ```
 
+## Precision/Recall Stats
+Compute precision/recall/F1 for called peaks versus planted centers in archived sweep results.
+
+```bash
+python scripts/peak_pr_stats.py \
+  --results-dir archived_results/results_tf_gcacc_ctrl_sweep32_clean64
+```
+
+This writes a timestamped folder under `archived_results/` with:
+- `per_run_stats.csv`
+- `group_summary.csv`
+- `run_filter_manifest.txt`
+
 ## Config Conventions
 - `peakcaller_list` controls which callers are included in the sweep.
 - `peakcallers` is the caller-parameter dictionary (flags/genome sizes/etc).
