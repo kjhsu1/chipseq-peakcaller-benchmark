@@ -19,11 +19,12 @@ def build_samples(cfg):
     S = []
     rid = 0
     peakcaller_list = get_peakcaller_list(cfg)
-    for genome, acc_key, gc_key, frag, read, nbk, aligner, peakcaller, tf_exp, gc_exp, acc_exp in product(
+    use_control_values = cfg.get("use_control", [True])
+    for genome, acc_key, gc_key, frag, read, nbk, aligner, peakcaller, tf_exp, gc_exp, acc_exp, use_control in product(
         cfg["genomes"], cfg["acc_beds"], cfg["gc_bias_sets"],
         cfg["fragment_length"], cfg["read_length"], cfg["nb_k"],
         cfg["aligners"], peakcaller_list,
-        cfg["tf_exp"], cfg["gc_exp"], cfg["acc_exp"]
+        cfg["tf_exp"], cfg["gc_exp"], cfg["acc_exp"], use_control_values
     ):
         for cov_t, cov_c in product(cfg["coverage_treat"], cfg["coverage_ctrl"]):
             for tpc, tsig, tenr in product(cfg["tf_peak_count_treat"],
@@ -45,6 +46,7 @@ def build_samples(cfg):
                     "tf_exp": tf_exp,
                     "gc_exp": gc_exp,
                     "acc_exp": acc_exp,
+                    "use_control": use_control,
                     # per-condition
                     "coverage_ctrl":  cov_c,
                     "coverage_treat": cov_t,

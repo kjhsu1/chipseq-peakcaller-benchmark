@@ -22,12 +22,13 @@ rule call_peaks_macs2:
     params:
         gsize = lambda wc: macs2_gsize(find_row(wc.run_id)),
         flags = lambda wc: macs2_flags(),
+        ctrl_arg = lambda wc, input: (f"-c {input.ctrl}" if find_row(wc.run_id)["use_control"] else ""),
         outdir = lambda wc: f"results/{wc.run_id}/peaks/macs2"
     shell:
         r"""
         macs2 callpeak \
           -t {input.treat} \
-          -c {input.ctrl} \
+          {params.ctrl_arg} \
           -g {params.gsize} \
           -n {wildcards.run_id} \
           {params.flags} \
@@ -43,12 +44,13 @@ rule call_peaks_epic2:
     params:
         chromsizes = lambda wc: config["peakcallers"]["epic2"]["chromsizes"][find_row(wc.run_id)["genome"]],
         egf        = lambda wc: config["peakcallers"]["epic2"]["effective_genome_fraction"][find_row(wc.run_id)["genome"]],
+        ctrl_arg   = lambda wc, input: (f"--control {input.ctrl}" if find_row(wc.run_id)["use_control"] else ""),
         flags      = lambda wc: epic2_flags()
     shell:
         r"""
         epic2 \
           --treatment {input.treat} \
-          --control  {input.ctrl} \
+          {params.ctrl_arg} \
           --chromsizes {params.chromsizes} \
           --effective-genome-fraction {params.egf} \
           --output {output.bed} \
