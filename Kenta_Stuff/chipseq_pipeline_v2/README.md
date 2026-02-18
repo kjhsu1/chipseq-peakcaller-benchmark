@@ -31,6 +31,55 @@ This writes a timestamped folder under `archived_results/` with:
 - `group_summary.csv`
 - `run_filter_manifest.txt`
 
+## Control-Depth Sweep (128 runs)
+This workflow supports a path-scoped calibration + 4-group sweep process entirely under
+`Kenta_Stuff/chipseq_pipeline_v2`.
+
+### 1) Bias calibration pilot
+```bash
+cd /Users/kentahsu/Code/KorfLab/Background_Forked/Kenta_Stuff/chipseq_pipeline_v2
+rm -rf results
+conda run -n chipseq_align snakemake -s Snakefile.py --configfile configs/calibration_bias_pilot.yaml --cores 8
+conda run -n chipseq_align python scripts/control_depth_calibrate.py \
+  --results-dir results \
+  --params-csv results/params/run_params.csv \
+  --output-dir archived_results/bias_calibration_YYYYMMDD_HHMMSS
+```
+
+### 2) Full sweep (4 groups x 32 runs)
+Repeat these commands for each config:
+- `configs/sweep128_proxy_uniform.yaml`
+- `configs/sweep128_proxy_bumpy.yaml`
+- `configs/sweep128_ctrltreat_uniform.yaml`
+- `configs/sweep128_ctrltreat_bumpy.yaml`
+
+```bash
+cd /Users/kentahsu/Code/KorfLab/Background_Forked/Kenta_Stuff/chipseq_pipeline_v2
+rm -rf results
+conda run -n chipseq_align snakemake -s Snakefile.py --configfile configs/sweep128_proxy_uniform.yaml --cores 8
+cp -a results archived_results/sweep128_proxy_uniform_YYYYMMDD_HHMMSS
+```
+
+### 3) Cumulative group evaluation and figures
+```bash
+cd /Users/kentahsu/Code/KorfLab/Background_Forked/Kenta_Stuff/chipseq_pipeline_v2
+conda run -n chipseq_align python scripts/control_depth_eval.py \
+  --input-dirs \
+    archived_results/sweep128_proxy_uniform_YYYYMMDD_HHMMSS \
+    archived_results/sweep128_proxy_bumpy_YYYYMMDD_HHMMSS \
+    archived_results/sweep128_ctrltreat_uniform_YYYYMMDD_HHMMSS \
+    archived_results/sweep128_ctrltreat_bumpy_YYYYMMDD_HHMMSS \
+  --output-dir archived_results/eval_sweep128_YYYYMMDD_HHMMSS
+```
+
+### Outputs
+- `tables/group_ratio_summary.csv`
+- `tables/figure_table_manifest.csv`
+- per group:
+  - `group_<name>/figures/pr_f1_vs_ratio.png`
+  - `group_<name>/figures/fdr_inflation_vs_ratio.png`
+  - `group_<name>/figures/interaction_heatmap.png`
+
 ## Config Conventions
 - `peakcaller_list` controls which callers are included in the sweep.
 - `peakcallers` is the caller-parameter dictionary (flags/genome sizes/etc).

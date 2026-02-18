@@ -28,6 +28,7 @@ rule simulate_reads:
         fasta     = lambda wc: fasta_path(find_row(wc.run_id)),
         acc_bed   = lambda wc: acc_bed_path(find_row(wc.run_id)),
         gc_bias   = lambda wc: gc_bias_path(find_row(wc.run_id)),
+        acc_weight = lambda wc: config.get("acc_weight", 1.0),
         tf_exp    = lambda wc: find_row(wc.run_id)["tf_exp"],
         gc_exp    = lambda wc: find_row(wc.run_id)["gc_exp"],
         acc_exp   = lambda wc: find_row(wc.run_id)["acc_exp"],
@@ -42,6 +43,7 @@ rule simulate_reads:
           --tf_sigma {params.tf_sigma} \
           --tf_enrich {params.tf_enrich} \
           --accessibility_bed {params.acc_bed} \
+          --acc_weight {params.acc_weight} \
           --gc_bias_params {params.gc_bias} \
           --tf_exp {params.tf_exp} \
           --gc_exp {params.gc_exp} \
