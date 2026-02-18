@@ -178,9 +178,10 @@ def load_pmf_curve(pmf_csv: Path, chrom: str) -> np.ndarray:
     return df["pmf"].to_numpy(dtype=float)
 
 
-def expected_coverage_from_pmf(pmf: np.ndarray, frag_len: int) -> np.ndarray:
+def expected_coverage_from_pmf(pmf: np.ndarray, frag_len: int, n_frag: float) -> np.ndarray:
+    mu_start = np.maximum(0.0, pmf * n_frag)
     kernel = np.ones(int(frag_len), dtype=float)
-    return np.convolve(pmf, kernel, mode="full")
+    return np.convolve(mu_start, kernel, mode="full")
 
 
 def expected_sd_from_nb(pmf: np.ndarray, frag_len: int, n_frag: float, nb_k: float) -> np.ndarray:
@@ -324,7 +325,8 @@ def main() -> None:
 
     pmf_csv_treat = args.results_dir / args.run_id / "treat" / "pmf.csv"
     pmf_treat = load_pmf_curve(pmf_csv_treat, peak_chrom)
-    exp_cov = expected_coverage_from_pmf(pmf_treat, frag_len)
+    n_frag_treat = cov_treat * len(pmf_treat) / max(frag_len, 1)
+    exp_cov = expected_coverage_from_pmf(pmf_treat, frag_len, n_frag_treat)
     chrom_len = exp_cov.size
 
     peak_window = make_window(
@@ -357,13 +359,12 @@ def main() -> None:
     all_rows: List[dict] = []
     for cond in conds_from_arg(args.cond):
         pmf_csv = args.results_dir / args.run_id / cond / "pmf.csv"
-        pmf = load_pmf_curve(pmf_csv, peak_chrom)
-        exp_curve = expected_coverage_from_pmf(pmf, frag_len)
-
         if cond == "treat":
             n_frag = cov_treat * chrom_len / max(frag_len, 1)
         else:
             n_frag = cov_ctrl * chrom_len / max(frag_len, 1)
+        pmf = load_pmf_curve(pmf_csv, peak_chrom)
+        exp_curve = expected_coverage_from_pmf(pmf, frag_len, n_frag)
         exp_sd = (
             expected_sd_from_nb(pmf, frag_len, n_frag, nb_k)
             if args.show_nb_band
