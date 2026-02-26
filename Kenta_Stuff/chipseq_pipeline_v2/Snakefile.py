@@ -59,7 +59,7 @@ def build_samples(cfg):
 
 SAMPLES = build_samples(config)
 
-# ---------- helpers shared by modules (no leading underscore) ----------
+# ---------- helpers shared by modules ----------
 def find_row(run_id):
     return next(r for r in SAMPLES if r["run_id"] == run_id)
 
@@ -86,7 +86,7 @@ include: "rules/simulation.smk"
 include: "rules/alignment.smk"
 include: "rules/peakcalling.smk"
 
-# ---------- global default target (Pattern B) ----------
+# ---------- global default target ----------
 rule all:
     input:
         rules.sim_done.input,
