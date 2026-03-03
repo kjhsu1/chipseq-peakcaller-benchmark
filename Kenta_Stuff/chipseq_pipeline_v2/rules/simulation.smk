@@ -32,6 +32,10 @@ rule simulate_reads:
         tf_exp    = lambda wc: find_row(wc.run_id)["tf_exp"],
         gc_exp    = lambda wc: find_row(wc.run_id)["gc_exp"],
         acc_exp   = lambda wc: find_row(wc.run_id)["acc_exp"],
+        map_coverage_pct = lambda wc: find_row(wc.run_id)["map_coverage_pct"],
+        map_sigma = lambda wc: find_row(wc.run_id)["map_sigma"],
+        map_enrich = lambda wc: find_row(wc.run_id)["map_enrich"],
+        map_exp = lambda wc: find_row(wc.run_id)["map_exp"],
     shell:
         r"""
         python -m scripts.updated_chip_seq \
@@ -48,6 +52,10 @@ rule simulate_reads:
           --tf_exp {params.tf_exp} \
           --gc_exp {params.gc_exp} \
           --acc_exp {params.acc_exp} \
+          --map_coverage_pct {params.map_coverage_pct} \
+          --map_sigma {params.map_sigma} \
+          --map_enrich {params.map_enrich} \
+          --map_exp {params.map_exp} \
           --nb_k {params.nb_k} \
           --output_fasta1 {output.r1} \
           --output_fasta2 {output.r2} \

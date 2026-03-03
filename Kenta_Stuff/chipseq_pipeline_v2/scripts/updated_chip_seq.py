@@ -62,6 +62,14 @@ parser.add_argument('--gc_exp', type=float, default=1.0,
     help='Exponent to reshape GC PMF (<1 flattens, >1 sharpens).')
 parser.add_argument('--acc_exp', type=float, default=1.0,
     help='Exponent to reshape accessibility PMF (<1 flattens, >1 sharpens).')
+parser.add_argument('--map_coverage_pct', type=float, default=0.0,
+    help='Percent of fragment-start bins used as mappability Gaussian centers.')
+parser.add_argument('--map_sigma', type=float, default=5.0,
+    help='Standard deviation for mappability Gaussian bias.')
+parser.add_argument('--map_enrich', type=float, default=1.0,
+    help='Enrichment factor for mappability Gaussian bias.')
+parser.add_argument('--map_exp', type=float, default=1.0,
+    help='Exponent to reshape mappability PMF (<1 flattens, >1 sharpens).')
 parser.add_argument('--seed', type=int, default=42,
     help='Random seed for reproducible TF peak placement')
 parser.add_argument('--nb_k', type=float, default=10.0,
@@ -90,6 +98,10 @@ gc_bias_params = args.gc_bias_params
 tf_exp = args.tf_exp
 gc_exp = args.gc_exp
 acc_exp = args.acc_exp
+map_coverage_pct = args.map_coverage_pct
+map_sigma = args.map_sigma
+map_enrich = args.map_enrich
+map_exp = args.map_exp
 seed = args.seed
 read_length = args.read_length
 nb_k = args.nb_k
@@ -199,6 +211,40 @@ def build_accessibility_bias_pmf(length: int, accessibility_bed: str,
         bias /= bias.sum()
     return bias
 
+
+def build_mappability_bias_pmf(length: int, map_coverage_pct: float,
+                               map_sigma: float, map_enrich: float,
+                               exp: float, rng: np.random.Generator) -> np.ndarray:
+    """Return mappability PMF with deterministic center count from coverage percent."""
+    bias = np.ones(length, dtype=float)
+    if length <= 0:
+        return bias
+
+    pct = min(max(float(map_coverage_pct), 0.0), 100.0)
+    num_map_peaks = int(round(length * pct / 100.0))
+    num_map_peaks = min(max(num_map_peaks, 0), length)
+
+    if num_map_peaks == 0:
+        bias /= bias.sum()
+        if exp != 1.0:
+            bias = np.power(bias, exp)
+            bias /= bias.sum()
+        return bias
+    if map_sigma <= 0:
+        raise ValueError('map_sigma must be > 0 when map_coverage_pct > 0')
+
+    centers = rng.choice(length, size=num_map_peaks, replace=False)
+    positions = np.arange(length)
+    for center in centers:
+        kernel = norm.pdf(positions, loc=center, scale=map_sigma)
+        bias += map_enrich * kernel
+
+    bias /= bias.sum()
+    if exp != 1.0:
+        bias = np.power(bias, exp)
+        bias /= bias.sum()
+    return bias
+
 def create_pmf(chrom_len: int, k: int) -> List[float]:
     """Initialize uniform PMF array for one chromosome."""
 
@@ -221,6 +267,10 @@ def create_pmf_all_chroms(
     tf_exp: float,
     gc_exp: float,
     acc_exp: float,
+    map_coverage_pct: float,
+    map_sigma: float,
+    map_enrich: float,
+    map_exp: float,
 ) -> Tuple[Dict[str, List[float]], Dict[str, List[int]]]:
     """Build PMF dictionary for all chromosomes with bias modeling."""
 
@@ -251,7 +301,10 @@ def create_pmf_all_chroms(
         gc_bias = build_gc_bias_pmf(seq, gc_params, fragment_length, exp=gc_exp)
         acc_bias = build_accessibility_bias_pmf(length, accessibility_bed, acc_weight,
                                                chrom_id.split()[0], exp=acc_exp)
-        combined = base * tf_bias * gc_bias * acc_bias
+        map_bias = build_mappability_bias_pmf(
+            length, map_coverage_pct, map_sigma, map_enrich, map_exp, rng
+        )
+        combined = base * tf_bias * gc_bias * acc_bias * map_bias
         pmf = combined / combined.sum()
         genome_pmfs[chrom_id] = pmf.tolist()
     return genome_pmfs, planted_peaks
@@ -365,6 +418,10 @@ if fasta:
         tf_exp,
         gc_exp,
         acc_exp,
+        map_coverage_pct,
+        map_sigma,
+        map_enrich,
+        map_exp,
     )
 
     paired_reads, nb_counts = sample_genome(
@@ -381,7 +438,6 @@ if fasta:
         write_pmf_csv(genome_pmf, pmf_csv)
     if planted_peaks_bed:
         write_planted_peaks_bed(planted_peaks, planted_peaks_bed)
-
 
 
 

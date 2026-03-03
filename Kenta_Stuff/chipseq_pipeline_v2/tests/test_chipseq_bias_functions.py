@@ -85,6 +85,40 @@ def build_accessibility_bias_pmf(length: int, accessibility_bed: str,
     return bias
 
 
+def map_peak_count_from_coverage(length: int, map_coverage_pct: float) -> int:
+    """Return deterministic mappability center count from coverage percent."""
+    pct = min(max(float(map_coverage_pct), 0.0), 100.0)
+    count = int(round(length * pct / 100.0))
+    return min(max(count, 0), length)
+
+
+def build_mappability_bias_pmf(length: int, map_coverage_pct: float,
+                               map_sigma: float, map_enrich: float,
+                               exp: float = 1.0, seed: int = 7) -> np.ndarray:
+    """Return mappability PMF where center count is deterministic from coverage."""
+    bias = np.ones(length, dtype=float)
+    if length <= 0:
+        return bias
+    n_peaks = map_peak_count_from_coverage(length, map_coverage_pct)
+    if n_peaks == 0:
+        bias /= bias.sum()
+        if exp != 1.0:
+            bias = np.power(bias, exp)
+            bias /= bias.sum()
+        return bias
+    rng = np.random.default_rng(seed)
+    centers = rng.choice(length, size=n_peaks, replace=False)
+    positions = np.arange(length)
+    for center in centers:
+        kernel = norm.pdf(positions, loc=center, scale=map_sigma)
+        bias += map_enrich * kernel
+    bias /= bias.sum()
+    if exp != 1.0:
+        bias = np.power(bias, exp)
+        bias /= bias.sum()
+    return bias
+
+
 def test_tf_bias_exponent_effect():
     """Ensure TF exponent reshapes distribution."""
     flat = build_tf_bias_pmf(10, [5], 1.0, 1.0, exp=0.5)
@@ -116,3 +150,34 @@ def test_accessibility_bias_exponent_effect(tmp_path):
     assert np.isclose(flat.sum(), 1.0)
     assert np.isclose(sharp.sum(), 1.0)
     assert sharp.max() > flat.max()
+
+
+def test_mappability_exponent_effect():
+    """Ensure mappability exponent reshapes distribution."""
+    flat = build_mappability_bias_pmf(100, 20.0, 3.0, 1.5, exp=0.5, seed=13)
+    sharp = build_mappability_bias_pmf(100, 20.0, 3.0, 1.5, exp=2.0, seed=13)
+    assert np.isclose(flat.sum(), 1.0)
+    assert np.isclose(sharp.sum(), 1.0)
+    assert sharp.max() > flat.max()
+
+
+def test_mappability_coverage_controls_peak_count():
+    """Coverage percent should deterministically set mappability center count."""
+    length = 100
+    low_pct = 10.0
+    high_pct = 60.0
+    assert map_peak_count_from_coverage(length, low_pct) == 10
+    assert map_peak_count_from_coverage(length, high_pct) == 60
+    low = build_mappability_bias_pmf(length, low_pct, 3.0, 1.0, exp=1.0, seed=11)
+    high = build_mappability_bias_pmf(length, high_pct, 3.0, 1.0, exp=1.0, seed=11)
+    assert np.isclose(low.sum(), 1.0)
+    assert np.isclose(high.sum(), 1.0)
+    assert np.all(low >= 0)
+    assert np.all(high >= 0)
+
+
+def test_mappability_zero_coverage_is_uniform():
+    """Zero mappability coverage should yield uniform PMF."""
+    pmf = build_mappability_bias_pmf(12, 0.0, 3.0, 2.0, exp=1.0, seed=3)
+    expected = np.ones(12, dtype=float) / 12.0
+    assert np.allclose(pmf, expected)
