@@ -20,14 +20,24 @@ def build_samples(cfg):
     rid = 0
     peakcaller_list = get_peakcaller_list(cfg)
     use_control_values = cfg.get("use_control", [True])
+    macs2_mode_values = cfg.get("macs2_mode", ["narrow"])
+    allowed_macs2_modes = {"narrow", "broad"}
+    invalid_modes = sorted(set(macs2_mode_values) - allowed_macs2_modes)
+    if invalid_modes:
+        raise ValueError(
+            f"Unsupported macs2_mode values: {invalid_modes}. "
+            "Allowed values are ['narrow', 'broad']."
+        )
     for (
         genome, acc_key, gc_key, frag, read, nbk, aligner, peakcaller,
+        macs2_mode,
         tf_exp, gc_exp, acc_exp, map_coverage_pct, map_sigma, map_enrich,
         map_exp, use_control
     ) in product(
         cfg["genomes"], cfg["acc_beds"], cfg["gc_bias_sets"],
         cfg["fragment_length"], cfg["read_length"], cfg["nb_k"],
         cfg["aligners"], peakcaller_list,
+        macs2_mode_values,
         cfg["tf_exp"], cfg["gc_exp"], cfg["acc_exp"],
         cfg.get("map_coverage_pct", [0.0]),
         cfg.get("map_sigma", [5.0]),
@@ -52,6 +62,7 @@ def build_samples(cfg):
                     "nb_k": nbk,
                     "aligner": aligner,
                     "peakcaller": peakcaller,
+                    "macs2_mode": macs2_mode,
                     "tf_exp": tf_exp,
                     "gc_exp": gc_exp,
                     "acc_exp": acc_exp,
