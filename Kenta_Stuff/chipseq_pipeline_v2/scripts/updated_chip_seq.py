@@ -400,6 +400,13 @@ def write_r1_r2_fastas(paired_reads, r1_path, r2_path):
             f1.write(f">read_{i:06d}/1\n{r1}\n")
             f2.write(f">read_{i:06d}/2\n{r2}\n")
 
+
+def ensure_parent_dir(path: str) -> None:
+    """Create parent directory for path when needed."""
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+
 """Below code will print the FASTA for the reads generated from experiment"""
 
 if fasta:
@@ -432,13 +439,16 @@ if fasta:
         read_length,
         nb_k,
     )
+    ensure_parent_dir(output_fasta1)
+    ensure_parent_dir(output_fasta2)
     write_r1_r2_fastas(paired_reads, output_fasta1, output_fasta2)
     
     if pmf_csv:
+        ensure_parent_dir(pmf_csv)
         write_pmf_csv(genome_pmf, pmf_csv)
     if planted_peaks_bed:
+        ensure_parent_dir(planted_peaks_bed)
         write_planted_peaks_bed(planted_peaks, planted_peaks_bed)
-
 
 
 
