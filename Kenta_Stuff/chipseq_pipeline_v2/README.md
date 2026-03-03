@@ -83,7 +83,9 @@ conda run -n chipseq_align python scripts/control_depth_eval.py \
 ## Config Conventions
 - `peakcaller_list` controls which callers are included in the sweep.
 - `peakcallers` is the caller-parameter dictionary (flags/genome sizes/etc).
+- `macs2_mode` controls MACS2 decoding strategy (`narrow` or `broad`) and defaults to `["narrow"]`.
 - `use_control` toggles whether peakcallers receive control/input BAM (`[true, false]` sweeps both modes).
+- MACS2 outputs are normalized to `results/{run_id}/peaks/macs2/{run_id}_peaks.bed` for both modes.
 - Mappability bias is optional. `map_coverage_pct` deterministically sets the number of mappability Gaussian centers:
   - `num_map_peaks = round(num_bins * map_coverage_pct / 100)`
   - `map_sigma`, `map_enrich`, and `map_exp` control the Gaussian shape.

@@ -58,6 +58,9 @@ def resolve_groups(input_dirs: List[Path], labels: List[str]) -> Dict[Path, str]
 def resolve_peak_path(results_dir: Path, run_id: str, peakcaller: str) -> Path:
     if peakcaller == "epic2":
         return results_dir / run_id / "peaks" / "epic2" / f"{run_id}_domains.bed"
+    normalized = results_dir / run_id / "peaks" / "macs2" / f"{run_id}_peaks.bed"
+    if normalized.exists():
+        return normalized
     return results_dir / run_id / "peaks" / "macs2" / f"{run_id}_peaks.narrowPeak"
 
 
