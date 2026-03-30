@@ -73,12 +73,29 @@ conda run -n chipseq_align python scripts/control_depth_eval.py \
 ```
 
 ### Outputs
-- `tables/group_ratio_summary.csv`
+- `tables/category_method_ratio_summary.csv`
+- `tables/category_method_summary.csv`
 - `tables/figure_table_manifest.csv`
-- per group:
-  - `group_<name>/figures/pr_f1_vs_ratio.png`
-  - `group_<name>/figures/fdr_inflation_vs_ratio.png`
-  - `group_<name>/figures/interaction_heatmap.png`
+- per category and method combo:
+  - `<category>/<aligner+peakcaller>/figures/pr_f1_vs_ratio.png`
+  - `<category>/<aligner+peakcaller>/figures/fdr_inflation_vs_ratio.png`
+  - `<category>/<aligner+peakcaller>/figures/interaction_heatmap.png`
+
+## Eight-Category Sweep
+The current workflow supports eight peakcaller-based experiment categories:
+- `shotgun_flat_narrow_none`
+- `shotgun_flat_broad_none`
+- `flatearth_peaks_broad_integrated`
+- `flatearth_plateaus_broad_integrated`
+- `realistic_peaks_wavy_narrow_integrated`
+- `realistic_peaks_hilly_narrow_integrated`
+- `realistic_plateaus_wavy_broad_integrated`
+- `realistic_plateaus_hilly_broad_integrated`
+
+Three configs extend those categories with higher-value enrichment settings:
+- `configs/flatearth_broad_integrated_enrich128.yaml`
+- `configs/realistic_peaks_integrated_enrich128.yaml`
+- `configs/realistic_plateau_integrated_enrich128.yaml`
 
 ## Config Conventions
 - `peakcaller_list` controls which callers are included in the sweep.
