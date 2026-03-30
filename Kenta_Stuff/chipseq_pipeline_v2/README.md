@@ -97,6 +97,7 @@ Three configs extend those categories with higher-value enrichment settings:
 - `configs/realistic_peaks_integrated_enrich128.yaml`
 - `configs/realistic_plateau_integrated_enrich128.yaml`
 
+
 ### TF-vs-Histone Boundary
 - `tf_sigma` controls planted signal width.
 - `tf_exp` controls contrast/sharpness of the TF PMF after normalization; it does not set the width.
@@ -104,6 +105,23 @@ Three configs extend those categories with higher-value enrichment settings:
   - TF-like / narrow: `tf_sigma <= 5`
   - histone-like / broad: `tf_sigma >= 15`
   - intermediate values (`5 < tf_sigma < 15`) are treated as ambiguous and excluded from the headline 8-category summaries
+
+## Sequential Slurm Sweeps
+The `slurm/` directory contains sequential Slurm submission assets for the two
+128-run enrich configs:
+- `realistic_peaks_integrated_enrich128.sbatch`
+- `realistic_plateau_integrated_enrich128.sbatch`
+- `submit_two_sweeps.sh`
+
+These jobs are designed to:
+- run one after the other with `afterok`
+- use `4` CPUs, `4G` RAM, and `3:00:00` walltime per job
+- write all results under `/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2`
+- use a Conda env at `/quobyte/ikorfgrp/home/kjhsu/envs/chipseq_pipeline_v2_peak_for_hpc`
+
+Each job executes Snakemake from a job-specific Quobyte work directory so the
+workflow's relative `results/` outputs never write into the repo checkout.
+
 
 ## Config Conventions
 - `peakcaller_list` controls which callers are included in the sweep.
