@@ -97,6 +97,14 @@ Three configs extend those categories with higher-value enrichment settings:
 - `configs/realistic_peaks_integrated_enrich128.yaml`
 - `configs/realistic_plateau_integrated_enrich128.yaml`
 
+### TF-vs-Histone Boundary
+- `tf_sigma` controls planted signal width.
+- `tf_exp` controls contrast/sharpness of the TF PMF after normalization; it does not set the width.
+- The simulator accepts any `tf_sigma`, but the benchmark's primary category mapping uses:
+  - TF-like / narrow: `tf_sigma <= 5`
+  - histone-like / broad: `tf_sigma >= 15`
+  - intermediate values (`5 < tf_sigma < 15`) are treated as ambiguous and excluded from the headline 8-category summaries
+
 ## Config Conventions
 - `peakcaller_list` controls which callers are included in the sweep.
 - `peakcallers` is the caller-parameter dictionary (flags/genome sizes/etc).

@@ -67,16 +67,22 @@ def classify_category(row: pd.Series) -> Optional[str]:
     if tf_count <= 0 or not use_control:
         return None
 
+    # Primary benchmark boundary:
+    # - TF-like / narrow: tf_sigma <= 5
+    # - Histone-like / broad: tf_sigma >= 15
+    # - 5 < tf_sigma < 15 is ambiguous and excluded from headline categories
     if gc_exp == 0 and acc_exp == 0 and map_coverage_pct == 0 and macs2_mode == "broad":
-        if tf_sigma < 10:
+        if tf_sigma <= 5:
             return "flatearth_peaks_broad_integrated"
-        return "flatearth_plateaus_broad_integrated"
+        if tf_sigma >= 15:
+            return "flatearth_plateaus_broad_integrated"
+        return None
 
     if gc_exp > 0 and acc_exp > 0:
         background = "wavy" if map_coverage_pct == 0 else "hilly"
-        if macs2_mode == "narrow" and tf_sigma < 10:
+        if macs2_mode == "narrow" and tf_sigma <= 5:
             return f"realistic_peaks_{background}_narrow_integrated"
-        if macs2_mode == "broad" and tf_sigma >= 10:
+        if macs2_mode == "broad" and tf_sigma >= 15:
             return f"realistic_plateaus_{background}_broad_integrated"
 
     return None
