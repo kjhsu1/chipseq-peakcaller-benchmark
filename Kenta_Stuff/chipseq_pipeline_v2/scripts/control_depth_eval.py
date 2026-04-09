@@ -183,9 +183,46 @@ def compute_summary(per_run: pd.DataFrame, group_cols: List[str]) -> pd.DataFram
     return summary
 
 
+def compute_aggregate_table(per_run: pd.DataFrame, group_cols: List[str]) -> pd.DataFrame:
+    summary = (
+        per_run.groupby(group_cols, as_index=False)
+        .agg(
+            tp_called=("tp_called", "sum"),
+            total_called=("total_called", "sum"),
+            tp_planted=("tp_planted", "sum"),
+            total_planted=("total_planted", "sum"),
+            n_runs=("run_id", "count"),
+        )
+        .sort_values(group_cols)
+    )
+
+    summary["precision"] = np.where(summary["total_called"] > 0, summary["tp_called"] / summary["total_called"], 0.0)
+    summary["recall"] = np.where(summary["total_planted"] > 0, summary["tp_planted"] / summary["total_planted"], 0.0)
+    denom = summary["precision"] + summary["recall"]
+    summary["f1"] = np.where(denom > 0, 2 * (summary["precision"] * summary["recall"]) / denom, 0.0)
+    summary["fdr"] = 1.0 - summary["precision"]
+
+    if "method_combo" in group_cols:
+        baseline = summary.groupby("method_combo", as_index=False)["total_called"].max().rename(
+            columns={"total_called": "baseline_called"}
+        )
+        summary = summary.merge(baseline, on="method_combo", how="left")
+    else:
+        summary["baseline_called"] = float(summary["total_called"].max())
+
+    summary["inflation"] = np.where(summary["baseline_called"] > 0, summary["total_called"] / summary["baseline_called"], np.nan)
+    return summary.drop(columns=["baseline_called"])
+
+
 def write_outputs(summary: pd.DataFrame, output_dir: Path) -> None:
     tables_dir = output_dir / "tables"
     tables_dir.mkdir(parents=True, exist_ok=True)
+
+    per_run = summary.attrs.get("per_run")
+    if per_run is not None:
+        per_run.sort_values(["category", "method_combo", "ratio", "run_id"]).to_csv(
+            tables_dir / "per_run_stats.csv", index=False
+        )
 
     summary[
         ["category", "method_combo", "ratio", "precision", "recall", "f1", "fdr", "inflation", "n_runs"]
@@ -195,14 +232,11 @@ def write_outputs(summary: pd.DataFrame, output_dir: Path) -> None:
         tables_dir / "figure_table_manifest.csv", index=False
     )
 
-    category_method_summary = (
-        summary.groupby(["category", "method_combo"], as_index=False)[
-            ["precision", "recall", "f1", "fdr", "inflation", "n_runs"]
-        ]
-        .mean()
-        .sort_values(["category", "method_combo"])
-    )
+    category_method_summary = compute_aggregate_table(per_run, ["category", "method_combo"])
     category_method_summary.to_csv(tables_dir / "category_method_summary.csv", index=False)
+
+    category_summary = compute_aggregate_table(per_run, ["category"])
+    category_summary.to_csv(tables_dir / "category_summary.csv", index=False)
 
     for (category, method_combo), grp in summary.groupby(["category", "method_combo"]):
         grp = grp.sort_values("ratio")
@@ -221,6 +255,19 @@ def write_outputs(summary: pd.DataFrame, output_dir: Path) -> None:
         ax.legend()
         fig.tight_layout()
         fig.savefig(fig_dir / "pr_f1_vs_ratio.png", dpi=200)
+        plt.close(fig)
+
+        fig, ax = plt.subplots(figsize=(5.5, 5.5))
+        ax.plot(grp["recall"], grp["precision"], marker="o")
+        for _, row in grp.iterrows():
+            ax.annotate(f"{row['ratio']:.3f}", (row["recall"], row["precision"]), fontsize=7, xytext=(4, 4), textcoords="offset points")
+        ax.set_xlabel("recall")
+        ax.set_ylabel("precision")
+        ax.set_xlim(0, 1.05)
+        ax.set_ylim(0, 1.05)
+        ax.set_title(f"Precision-Recall ({category}, {method_combo})")
+        fig.tight_layout()
+        fig.savefig(fig_dir / "precision_recall_curve.png", dpi=200)
         plt.close(fig)
 
         fig, ax1 = plt.subplots(figsize=(7, 4.5))
@@ -301,7 +348,10 @@ def main() -> None:
     if not per_run_rows:
         raise RuntimeError("No aggregate rows were found. Check input directories and outputs.")
 
-    write_outputs(compute_summary(pd.DataFrame(per_run_rows), ["category", "method_combo"]), args.output_dir)
+    per_run_df = pd.DataFrame(per_run_rows)
+    summary = compute_summary(per_run_df, ["category", "method_combo"])
+    summary.attrs["per_run"] = per_run_df
+    write_outputs(summary, args.output_dir)
 
 
 if __name__ == "__main__":
