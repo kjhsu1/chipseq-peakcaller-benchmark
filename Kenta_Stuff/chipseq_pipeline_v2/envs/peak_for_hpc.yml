@@ -22,6 +22,7 @@ dependencies:
   - bowtie2=2.5.*         # 2.5.x series is stable on jammy
   - bwa=0.7.17
   - samtools=1.19.*
+  - deeptools
   - pysam>=0.23
 
   # ---- Workflow / ML ----

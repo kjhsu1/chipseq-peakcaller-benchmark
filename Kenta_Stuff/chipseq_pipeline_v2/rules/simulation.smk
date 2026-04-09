@@ -1,4 +1,4 @@
-# simulation.smk — emits FASTA R1/R2 and pmf.csv per (run_id, cond)
+# simulation.smk — emits FASTA R1/R2, pmf.csv, and planted peak centers per (run_id, cond)
 
 def sim_outputs_for(run_id, cond):
     base = f"results/{run_id}/{cond}"
@@ -6,6 +6,7 @@ def sim_outputs_for(run_id, cond):
         f"{base}/reads_R1.fasta",
         f"{base}/reads_R2.fasta",
         f"{base}/pmf.csv",
+        f"{base}/planted_peaks.bed",
     ]
 
 rule simulate_reads:
@@ -13,6 +14,7 @@ rule simulate_reads:
         r1  = "results/{run_id}/{cond}/reads_R1.fasta",
         r2  = "results/{run_id}/{cond}/reads_R2.fasta",
         pmf = "results/{run_id}/{cond}/pmf.csv",
+        peaks = "results/{run_id}/{cond}/planted_peaks.bed",
     params:
         cov       = lambda wc: (find_row(wc.run_id)["coverage_ctrl"]
                                 if wc.cond == "con" else find_row(wc.run_id)["coverage_treat"]),
@@ -26,9 +28,14 @@ rule simulate_reads:
         fasta     = lambda wc: fasta_path(find_row(wc.run_id)),
         acc_bed   = lambda wc: acc_bed_path(find_row(wc.run_id)),
         gc_bias   = lambda wc: gc_bias_path(find_row(wc.run_id)),
+        acc_weight = lambda wc: config.get("acc_weight", 1.0),
         tf_exp    = lambda wc: find_row(wc.run_id)["tf_exp"],
         gc_exp    = lambda wc: find_row(wc.run_id)["gc_exp"],
         acc_exp   = lambda wc: find_row(wc.run_id)["acc_exp"],
+        map_coverage_pct = lambda wc: find_row(wc.run_id)["map_coverage_pct"],
+        map_sigma = lambda wc: find_row(wc.run_id)["map_sigma"],
+        map_enrich = lambda wc: find_row(wc.run_id)["map_enrich"],
+        map_exp = lambda wc: find_row(wc.run_id)["map_exp"],
     shell:
         r"""
         python -m scripts.updated_chip_seq \
@@ -40,14 +47,20 @@ rule simulate_reads:
           --tf_sigma {params.tf_sigma} \
           --tf_enrich {params.tf_enrich} \
           --accessibility_bed {params.acc_bed} \
+          --acc_weight {params.acc_weight} \
           --gc_bias_params {params.gc_bias} \
           --tf_exp {params.tf_exp} \
           --gc_exp {params.gc_exp} \
           --acc_exp {params.acc_exp} \
+          --map_coverage_pct {params.map_coverage_pct} \
+          --map_sigma {params.map_sigma} \
+          --map_enrich {params.map_enrich} \
+          --map_exp {params.map_exp} \
           --nb_k {params.nb_k} \
           --output_fasta1 {output.r1} \
           --output_fasta2 {output.r2} \
-          --pmf_csv {output.pmf}
+          --pmf_csv {output.pmf} \
+          --planted_peaks_bed {output.peaks}
         """
 
 def sim_all():
@@ -59,4 +72,3 @@ def sim_all():
 
 rule sim_done:
     input: sim_all()
-

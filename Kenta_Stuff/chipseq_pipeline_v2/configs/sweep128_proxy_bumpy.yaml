@@ -1,0 +1,48 @@
+genomes:
+  - "ce11_1pct"
+
+coverage_treat: [20]
+coverage_ctrl:  [0.5, 2.0]
+
+tf_peak_count_treat: [0]
+fragment_length: [150]
+read_length:     [38]
+tf_sigma:        [2, 5]
+tf_enrich:       [50, 250]
+tf_exp:          [2.0, 4.0]
+gc_exp:          [0.6]
+acc_exp:         [0.5]
+acc_weight:      3.0
+nb_k:            [1000000]
+
+aligners: ["bowtie2", "bwa-mem"]
+peakcaller_list: ["macs2"]
+use_control: [false]
+
+acc_beds:     ["bedA"]
+gc_bias_sets: ["gcA"]
+
+genome_paths:
+  ce11_1pct: "data/genomes/ce11_1pct/ce11_1pct.fa"
+
+accessibility_paths:
+  ce11_1pct:
+    bedA: "data/accessibility/ce11_1pct/bedA.bed"
+    bedB: "data/accessibility/ce11_1pct/bedB.bed"
+
+gc_bias_paths:
+  gcA: "data/gc_bias/gcA.csv"
+  gcB: "data/gc_bias/gcB.csv"
+
+peakcallers:
+  macs2:
+    flags: "-f BAMPE --nomodel --extsize 147 --keep-dup all --nolambda -q 0.5"
+    genome_size:
+      ce11_1pct: "1.0e6"
+
+indexes:
+  ce11_1pct:
+    bowtie2_index: "data/indexes/ce11_1pct/bowtie2_index/ce11_1pct"
+    bwa_index:     "data/indexes/ce11_1pct/bwa_index/ce11_1pct"
+
+params_table: "results/params/run_params.csv"

@@ -9,7 +9,7 @@ This program will print FASTA of reads generated based on user defined arguments
 
 import random
 import os
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 import numpy as np
 import pandas as pd
@@ -48,7 +48,7 @@ parser.add_argument('--read_length', type=int, default=38,
     help='Length (bp) of each mate-pair read (typical kits: 38 bp or 100 bp).')
 parser.add_argument('--tf_sigma', type=float, default=5.0,
     help='Standard deviation for TF-binding bias')
-parser.add_argument('--tf_enrichment', type=float, default=1.0,
+parser.add_argument('--tf_enrich', '--tf_enrichment', dest='tf_enrichment', type=float, default=1.0,
     help='Enrichment factor for TF-binding bias')
 parser.add_argument('--accessibility_bed', type=str, default=None,
     help='BED file describing open chromatin intervals')
@@ -62,6 +62,14 @@ parser.add_argument('--gc_exp', type=float, default=1.0,
     help='Exponent to reshape GC PMF (<1 flattens, >1 sharpens).')
 parser.add_argument('--acc_exp', type=float, default=1.0,
     help='Exponent to reshape accessibility PMF (<1 flattens, >1 sharpens).')
+parser.add_argument('--map_coverage_pct', type=float, default=0.0,
+    help='Percent of fragment-start bins used as mappability Gaussian centers.')
+parser.add_argument('--map_sigma', type=float, default=5.0,
+    help='Standard deviation for mappability Gaussian bias.')
+parser.add_argument('--map_enrich', type=float, default=1.0,
+    help='Enrichment factor for mappability Gaussian bias.')
+parser.add_argument('--map_exp', type=float, default=1.0,
+    help='Exponent to reshape mappability PMF (<1 flattens, >1 sharpens).')
 parser.add_argument('--seed', type=int, default=42,
     help='Random seed for reproducible TF peak placement')
 parser.add_argument('--nb_k', type=float, default=10.0,
@@ -72,6 +80,8 @@ parser.add_argument('--output_fasta2', required=True,
     help='Path to write mate 2 (R2) reads in FASTA format.')
 parser.add_argument('--pmf_csv', type=str, default=None,
     help='Path to CSV file storing PMF and variance per bin')
+parser.add_argument('--planted_peaks_bed', type=str, default=None,
+    help='Path to BED file storing planted peak centers (1-bp intervals).')
 
 args, _ = parser.parse_known_args()
 
@@ -88,12 +98,17 @@ gc_bias_params = args.gc_bias_params
 tf_exp = args.tf_exp
 gc_exp = args.gc_exp
 acc_exp = args.acc_exp
+map_coverage_pct = args.map_coverage_pct
+map_sigma = args.map_sigma
+map_enrich = args.map_enrich
+map_exp = args.map_exp
 seed = args.seed
 read_length = args.read_length
 nb_k = args.nb_k
 output_fasta1 = args.output_fasta1
 output_fasta2 = args.output_fasta2
 pmf_csv = args.pmf_csv
+planted_peaks_bed = args.planted_peaks_bed
 
 if not pmf_csv and fasta:
     base = os.path.splitext(os.path.basename(fasta))[0]
@@ -196,6 +211,40 @@ def build_accessibility_bias_pmf(length: int, accessibility_bed: str,
         bias /= bias.sum()
     return bias
 
+
+def build_mappability_bias_pmf(length: int, map_coverage_pct: float,
+                               map_sigma: float, map_enrich: float,
+                               exp: float, rng: np.random.Generator) -> np.ndarray:
+    """Return mappability PMF with deterministic center count from coverage percent."""
+    bias = np.ones(length, dtype=float)
+    if length <= 0:
+        return bias
+
+    pct = min(max(float(map_coverage_pct), 0.0), 100.0)
+    num_map_peaks = int(round(length * pct / 100.0))
+    num_map_peaks = min(max(num_map_peaks, 0), length)
+
+    if num_map_peaks == 0:
+        bias /= bias.sum()
+        if exp != 1.0:
+            bias = np.power(bias, exp)
+            bias /= bias.sum()
+        return bias
+    if map_sigma <= 0:
+        raise ValueError('map_sigma must be > 0 when map_coverage_pct > 0')
+
+    centers = rng.choice(length, size=num_map_peaks, replace=False)
+    positions = np.arange(length)
+    for center in centers:
+        kernel = norm.pdf(positions, loc=center, scale=map_sigma)
+        bias += map_enrich * kernel
+
+    bias /= bias.sum()
+    if exp != 1.0:
+        bias = np.power(bias, exp)
+        bias /= bias.sum()
+    return bias
+
 def create_pmf(chrom_len: int, k: int) -> List[float]:
     """Initialize uniform PMF array for one chromosome."""
 
@@ -218,10 +267,15 @@ def create_pmf_all_chroms(
     tf_exp: float,
     gc_exp: float,
     acc_exp: float,
-) -> Dict[str, List[float]]:
+    map_coverage_pct: float,
+    map_sigma: float,
+    map_enrich: float,
+    map_exp: float,
+) -> Tuple[Dict[str, List[float]], Dict[str, List[int]]]:
     """Build PMF dictionary for all chromosomes with bias modeling."""
 
     genome_pmfs = {}
+    planted_peaks = {}
     rng = np.random.default_rng(seed)
     gc_params = {'csv': gc_bias_params}
     for chrom_id, seq in lib.read_fasta(fasta):
@@ -240,28 +294,45 @@ def create_pmf_all_chroms(
             if tf_peak_count > 0
             else np.array([], dtype=int)
         )
+        planted_peaks[chrom_id] = tf_centers.astype(int).tolist()
         tf_bias = build_tf_bias_pmf(
             length, tf_centers.tolist(), tf_sigma, tf_enrichment, exp=tf_exp
         )
         gc_bias = build_gc_bias_pmf(seq, gc_params, fragment_length, exp=gc_exp)
         acc_bias = build_accessibility_bias_pmf(length, accessibility_bed, acc_weight,
                                                chrom_id.split()[0], exp=acc_exp)
-        combined = base * tf_bias * gc_bias * acc_bias
+        map_bias = build_mappability_bias_pmf(
+            length, map_coverage_pct, map_sigma, map_enrich, map_exp, rng
+        )
+        combined = base * tf_bias * gc_bias * acc_bias * map_bias
         pmf = combined / combined.sum()
         genome_pmfs[chrom_id] = pmf.tolist()
-    return genome_pmfs
+    return genome_pmfs, planted_peaks
 
 
 def write_pmf_csv(genome_pmfs: Dict[str, List[float]], path: str) -> None:
-    """Write PMF and variance arrays to CSV."""
+    """Write PMF and variance arrays to CSV, including chromosome."""
     rows = []
-    for pmf in genome_pmfs.values():
+    for chrom_id, pmf in genome_pmfs.items():
         arr = np.asarray(pmf, dtype=float)
         var = arr * (1 - arr)
         for idx, (p, v) in enumerate(zip(arr, var)):
-            rows.append((idx, p, v))
-    df = pd.DataFrame(rows, columns=['bin_idx', 'pmf', 'variance'])
+            rows.append((chrom_id, idx, p, v))
+    df = pd.DataFrame(rows, columns=['chrom', 'bin_idx', 'pmf', 'variance'])
     df.to_csv(path, index=False)
+
+
+def write_planted_peaks_bed(planted_peaks: Dict[str, List[int]], path: str) -> None:
+    """Write planted peak centers as a 1-bp BED file."""
+    peak_idx = 1
+    with open(path, 'w') as fh:
+        for chrom_id, centers in planted_peaks.items():
+            chrom = chrom_id.split()[0]
+            for center in centers:
+                start = int(center)
+                end = start + 1
+                fh.write(f"{chrom}\t{start}\t{end}\tpeak_{peak_idx}\n")
+                peak_idx += 1
 
 def sample_genome(
     fasta: str,
@@ -329,12 +400,19 @@ def write_r1_r2_fastas(paired_reads, r1_path, r2_path):
             f1.write(f">read_{i:06d}/1\n{r1}\n")
             f2.write(f">read_{i:06d}/2\n{r2}\n")
 
+
+def ensure_parent_dir(path: str) -> None:
+    """Create parent directory for path when needed."""
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+
 """Below code will print the FASTA for the reads generated from experiment"""
 
 if fasta:
     if read_length > k:
         raise ValueError('read_length must not exceed fragment_length')
-    genome_pmf = create_pmf_all_chroms(
+    genome_pmf, planted_peaks = create_pmf_all_chroms(
         fasta,
         k,
         tf_peak_count,
@@ -347,6 +425,10 @@ if fasta:
         tf_exp,
         gc_exp,
         acc_exp,
+        map_coverage_pct,
+        map_sigma,
+        map_enrich,
+        map_exp,
     )
 
     paired_reads, nb_counts = sample_genome(
@@ -357,14 +439,16 @@ if fasta:
         read_length,
         nb_k,
     )
+    ensure_parent_dir(output_fasta1)
+    ensure_parent_dir(output_fasta2)
     write_r1_r2_fastas(paired_reads, output_fasta1, output_fasta2)
     
     if pmf_csv:
+        ensure_parent_dir(pmf_csv)
         write_pmf_csv(genome_pmf, pmf_csv)
-
-
-
-
+    if planted_peaks_bed:
+        ensure_parent_dir(planted_peaks_bed)
+        write_planted_peaks_bed(planted_peaks, planted_peaks_bed)
 
 
 
