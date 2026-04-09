@@ -1,11 +1,11 @@
-"""Cumulative group-level evaluation for control-depth sweeps."""
+"""Aggregate archived sweep results by category and aligner/peakcaller combo."""
 
 from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import matplotlib
 
@@ -13,14 +13,6 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
-
-KNOWN_GROUPS = [
-    "proxy_uniform",
-    "proxy_bumpy",
-    "ctrltreat_uniform",
-    "ctrltreat_bumpy",
-]
 
 
 @dataclass(frozen=True)
@@ -32,27 +24,19 @@ class OverlapCounts:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Aggregate control-depth sweep results")
+    parser = argparse.ArgumentParser(description="Aggregate archived sweep results")
     parser.add_argument("--input-dirs", nargs="+", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--group-labels", nargs="*", default=[])
     return parser.parse_args()
 
 
-def parse_group_from_dir(path: Path) -> str:
-    name = path.name
-    for group in KNOWN_GROUPS:
-        if group in name:
-            return group
-    return name
-
-
-def resolve_groups(input_dirs: List[Path], labels: List[str]) -> Dict[Path, str]:
+def resolve_groups(input_dirs: List[Path], labels: List[str]) -> Dict[Path, Optional[str]]:
     if labels:
         if len(labels) != len(input_dirs):
             raise ValueError("--group-labels must match --input-dirs length")
         return {p: labels[i] for i, p in enumerate(input_dirs)}
-    return {p: parse_group_from_dir(p) for p in input_dirs}
+    return {p: None for p in input_dirs}
 
 
 def resolve_peak_path(results_dir: Path, run_id: str, peakcaller: str) -> Path:
@@ -62,6 +46,52 @@ def resolve_peak_path(results_dir: Path, run_id: str, peakcaller: str) -> Path:
     if normalized.exists():
         return normalized
     return results_dir / run_id / "peaks" / "macs2" / f"{run_id}_peaks.narrowPeak"
+
+
+def classify_category(row: pd.Series) -> Optional[str]:
+    use_control = bool(row.get("use_control", False))
+    tf_count = float(row.get("tf_peak_count_treat", 0))
+    gc_exp = float(row.get("gc_exp", 0))
+    acc_exp = float(row.get("acc_exp", 0))
+    map_coverage_pct = float(row.get("map_coverage_pct", 0))
+    tf_sigma = float(row.get("tf_sigma", 0))
+    macs2_mode = str(row.get("macs2_mode", "narrow"))
+
+    if tf_count == 0 and not use_control and gc_exp == 0 and acc_exp == 0 and map_coverage_pct == 0:
+        if macs2_mode == "narrow":
+            return "shotgun_flat_narrow_none"
+        if macs2_mode == "broad":
+            return "shotgun_flat_broad_none"
+        return None
+
+    if tf_count <= 0 or not use_control:
+        return None
+
+    # Primary benchmark boundary:
+    # - TF-like / narrow: tf_sigma <= 5
+    # - Histone-like / broad: tf_sigma >= 15
+    # - 5 < tf_sigma < 15 is ambiguous and excluded from headline categories
+    if gc_exp == 0 and acc_exp == 0 and map_coverage_pct == 0 and macs2_mode == "broad":
+        if tf_sigma <= 5:
+            return "flatearth_peaks_broad_integrated"
+        if tf_sigma >= 15:
+            return "flatearth_plateaus_broad_integrated"
+        return None
+
+    if gc_exp > 0 and acc_exp > 0:
+        background = "wavy" if map_coverage_pct == 0 else "hilly"
+        if macs2_mode == "narrow" and tf_sigma <= 5:
+            return f"realistic_peaks_{background}_narrow_integrated"
+        if macs2_mode == "broad" and tf_sigma >= 15:
+            return f"realistic_plateaus_{background}_broad_integrated"
+
+    return None
+
+
+def infer_method_combo(row: pd.Series) -> str:
+    aligner = str(row.get("aligner", "unknown"))
+    peakcaller = str(row.get("peakcaller", "unknown"))
+    return f"{aligner}+{peakcaller}"
 
 
 def load_planted_centers(path: Path) -> Dict[str, set[int]]:
@@ -117,9 +147,9 @@ def compute_overlap_stats(
     return OverlapCounts(tp_called, total_called, tp_planted, total_planted)
 
 
-def compute_summary(per_run: pd.DataFrame) -> pd.DataFrame:
+def compute_summary(per_run: pd.DataFrame, group_cols: List[str]) -> pd.DataFrame:
     summary = (
-        per_run.groupby(["group", "ratio"], as_index=False)
+        per_run.groupby(group_cols + ["ratio"], as_index=False)
         .agg(
             tp_called=("tp_called", "sum"),
             total_called=("total_called", "sum"),
@@ -129,7 +159,7 @@ def compute_summary(per_run: pd.DataFrame) -> pd.DataFrame:
             run_ids=("run_id", lambda v: ",".join(sorted(v))),
             source_dirs=("source_dir", lambda v: ",".join(sorted(set(v)))),
         )
-        .sort_values(["group", "ratio"])
+        .sort_values(group_cols + ["ratio"])
     )
 
     summary["precision"] = np.where(summary["total_called"] > 0, summary["tp_called"] / summary["total_called"], 0.0)
@@ -139,31 +169,78 @@ def compute_summary(per_run: pd.DataFrame) -> pd.DataFrame:
     summary["fdr"] = 1.0 - summary["precision"]
 
     summary["inflation"] = np.nan
-    for group, grp in summary.groupby("group"):
+    for keys, grp in summary.groupby(group_cols):
         baseline_ratio = grp["ratio"].max()
         baseline_called = float(grp.loc[grp["ratio"] == baseline_ratio, "total_called"].iloc[0])
-        mask = summary["group"] == group
+        if not isinstance(keys, tuple):
+            keys = (keys,)
+        mask = np.ones(len(summary), dtype=bool)
+        for col, key in zip(group_cols, keys):
+            mask &= summary[col] == key
         if baseline_called > 0:
             summary.loc[mask, "inflation"] = summary.loc[mask, "total_called"] / baseline_called
 
     return summary
 
 
+def compute_aggregate_table(per_run: pd.DataFrame, group_cols: List[str]) -> pd.DataFrame:
+    summary = (
+        per_run.groupby(group_cols, as_index=False)
+        .agg(
+            tp_called=("tp_called", "sum"),
+            total_called=("total_called", "sum"),
+            tp_planted=("tp_planted", "sum"),
+            total_planted=("total_planted", "sum"),
+            n_runs=("run_id", "count"),
+        )
+        .sort_values(group_cols)
+    )
+
+    summary["precision"] = np.where(summary["total_called"] > 0, summary["tp_called"] / summary["total_called"], 0.0)
+    summary["recall"] = np.where(summary["total_planted"] > 0, summary["tp_planted"] / summary["total_planted"], 0.0)
+    denom = summary["precision"] + summary["recall"]
+    summary["f1"] = np.where(denom > 0, 2 * (summary["precision"] * summary["recall"]) / denom, 0.0)
+    summary["fdr"] = 1.0 - summary["precision"]
+
+    if "method_combo" in group_cols:
+        baseline = summary.groupby("method_combo", as_index=False)["total_called"].max().rename(
+            columns={"total_called": "baseline_called"}
+        )
+        summary = summary.merge(baseline, on="method_combo", how="left")
+    else:
+        summary["baseline_called"] = float(summary["total_called"].max())
+
+    summary["inflation"] = np.where(summary["baseline_called"] > 0, summary["total_called"] / summary["baseline_called"], np.nan)
+    return summary.drop(columns=["baseline_called"])
+
+
 def write_outputs(summary: pd.DataFrame, output_dir: Path) -> None:
     tables_dir = output_dir / "tables"
     tables_dir.mkdir(parents=True, exist_ok=True)
 
-    summary[
-        ["group", "ratio", "precision", "recall", "f1", "fdr", "inflation", "n_runs"]
-    ].to_csv(tables_dir / "group_ratio_summary.csv", index=False)
+    per_run = summary.attrs.get("per_run")
+    if per_run is not None:
+        per_run.sort_values(["category", "method_combo", "ratio", "run_id"]).to_csv(
+            tables_dir / "per_run_stats.csv", index=False
+        )
 
-    summary[["group", "ratio", "n_runs", "run_ids", "source_dirs"]].to_csv(
+    summary[
+        ["category", "method_combo", "ratio", "precision", "recall", "f1", "fdr", "inflation", "n_runs"]
+    ].to_csv(tables_dir / "category_method_ratio_summary.csv", index=False)
+
+    summary[["category", "method_combo", "ratio", "n_runs", "run_ids", "source_dirs"]].to_csv(
         tables_dir / "figure_table_manifest.csv", index=False
     )
 
-    for group, grp in summary.groupby("group"):
+    category_method_summary = compute_aggregate_table(per_run, ["category", "method_combo"])
+    category_method_summary.to_csv(tables_dir / "category_method_summary.csv", index=False)
+
+    category_summary = compute_aggregate_table(per_run, ["category"])
+    category_summary.to_csv(tables_dir / "category_summary.csv", index=False)
+
+    for (category, method_combo), grp in summary.groupby(["category", "method_combo"]):
         grp = grp.sort_values("ratio")
-        fig_dir = output_dir / f"group_{group}" / "figures"
+        fig_dir = output_dir / category / method_combo.replace("/", "_") / "figures"
         fig_dir.mkdir(parents=True, exist_ok=True)
         ratios = grp["ratio"].to_numpy()
 
@@ -174,10 +251,23 @@ def write_outputs(summary: pd.DataFrame, output_dir: Path) -> None:
         ax.set_xlabel("control:treat ratio")
         ax.set_ylabel("metric value")
         ax.set_ylim(0, 1.05)
-        ax.set_title(f"PR/F1 vs ratio ({group})")
+        ax.set_title(f"PR/F1 vs ratio ({category}, {method_combo})")
         ax.legend()
         fig.tight_layout()
         fig.savefig(fig_dir / "pr_f1_vs_ratio.png", dpi=200)
+        plt.close(fig)
+
+        fig, ax = plt.subplots(figsize=(5.5, 5.5))
+        ax.plot(grp["recall"], grp["precision"], marker="o")
+        for _, row in grp.iterrows():
+            ax.annotate(f"{row['ratio']:.3f}", (row["recall"], row["precision"]), fontsize=7, xytext=(4, 4), textcoords="offset points")
+        ax.set_xlabel("recall")
+        ax.set_ylabel("precision")
+        ax.set_xlim(0, 1.05)
+        ax.set_ylim(0, 1.05)
+        ax.set_title(f"Precision-Recall ({category}, {method_combo})")
+        fig.tight_layout()
+        fig.savefig(fig_dir / "precision_recall_curve.png", dpi=200)
         plt.close(fig)
 
         fig, ax1 = plt.subplots(figsize=(7, 4.5))
@@ -194,7 +284,7 @@ def write_outputs(summary: pd.DataFrame, output_dir: Path) -> None:
         lines = l1 + l2
         labels = [l.get_label() for l in lines]
         ax1.legend(lines, labels, loc="best")
-        ax1.set_title(f"FDR/Inflation vs ratio ({group})")
+        ax1.set_title(f"FDR/Inflation vs ratio ({category}, {method_combo})")
         fig.tight_layout()
         fig.savefig(fig_dir / "fdr_inflation_vs_ratio.png", dpi=200)
         plt.close(fig)
@@ -209,7 +299,7 @@ def write_outputs(summary: pd.DataFrame, output_dir: Path) -> None:
         ax.set_yticks(range(len(metric_names)))
         ax.set_yticklabels(metric_names)
         ax.set_xlabel("control:treat ratio")
-        ax.set_title(f"Interaction heatmap ({group})")
+        ax.set_title(f"Interaction heatmap ({category}, {method_combo})")
         fig.colorbar(im, ax=ax, label="value")
         fig.tight_layout()
         fig.savefig(fig_dir / "interaction_heatmap.png", dpi=200)
@@ -224,13 +314,16 @@ def main() -> None:
     for input_dir in args.input_dirs:
         params_csv = input_dir / "params" / "run_params.csv"
         params = pd.read_csv(params_csv, dtype={"run_id": str})
-        group = group_map[input_dir]
-
         for row in params.itertuples(index=False):
             run_id = row.run_id
             planted_path = input_dir / run_id / "treat" / "planted_peaks.bed"
             peak_path = resolve_peak_path(input_dir, run_id, getattr(row, "peakcaller", "macs2"))
             if not planted_path.exists() or not peak_path.exists():
+                continue
+
+            row_series = pd.Series(row._asdict())
+            category = group_map[input_dir] or classify_category(row_series)
+            if category is None:
                 continue
 
             counts = compute_overlap_stats(
@@ -240,7 +333,8 @@ def main() -> None:
 
             per_run_rows.append(
                 {
-                    "group": group,
+                    "category": category,
+                    "method_combo": infer_method_combo(row_series),
                     "source_dir": str(input_dir),
                     "run_id": run_id,
                     "ratio": float(row.coverage_ctrl) / float(row.coverage_treat),
@@ -254,7 +348,10 @@ def main() -> None:
     if not per_run_rows:
         raise RuntimeError("No aggregate rows were found. Check input directories and outputs.")
 
-    write_outputs(compute_summary(pd.DataFrame(per_run_rows)), args.output_dir)
+    per_run_df = pd.DataFrame(per_run_rows)
+    summary = compute_summary(per_run_df, ["category", "method_combo"])
+    summary.attrs["per_run"] = per_run_df
+    write_outputs(summary, args.output_dir)
 
 
 if __name__ == "__main__":
