@@ -12,6 +12,7 @@ read_length:     [38]      # shared
 tf_sigma:        [5]       # treatment only
 tf_enrich:       [1]       # treatment only
 tf_exp:          [2.0]     # exponent for TF PMF (<1 flattens, >1 sharpens)
+seed:            [42]      # random seeds for planted peak placement / sampling
 gc_exp:          [0.1]     # exponent for GC PMF (<1 flattens, >1 sharpens)
 acc_exp:         [0.1]     # exponent for accessibility PMF (<1 flattens, >1 sharpens)
 map_coverage_pct: [0.0]    # % bins used as mappability Gaussian centers
@@ -19,6 +20,7 @@ map_sigma:        [5.0]    # SD for mappability Gaussian bias
 map_enrich:       [1.0]    # enrichment for mappability Gaussian bias
 map_exp:          [1.0]    # exponent for mappability PMF (<1 flattens, >1 sharpens)
 nb_k:            [5]       # shared dispersion
+emit_pmf_csv: true         # disable to skip writing per-run PMF CSVs during production sweeps
 
 # NEW: aligners used in the sweep (must match alignment.smk output folder names)
 aligners: ["bowtie2"]

@@ -97,6 +97,32 @@ Three configs extend those categories with higher-value enrichment settings:
 - `configs/realistic_peaks_integrated_enrich128.yaml`
 - `configs/realistic_plateau_integrated_enrich128.yaml`
 
+### Balanced Control-Coverage Sweep
+The balanced sweep configs keep the same parameter-family composition at every
+control-coverage x-point and use separate curves for fixed treatment coverage.
+
+Production configs:
+- `configs/balanced_flatearth_peaks_broad_integrated_288.yaml`
+- `configs/balanced_flatearth_plateaus_broad_integrated_288.yaml`
+- `configs/balanced_realistic_peaks_wavy_narrow_integrated_288.yaml`
+- `configs/balanced_realistic_peaks_hilly_narrow_integrated_288.yaml`
+- `configs/balanced_realistic_plateaus_wavy_broad_integrated_288.yaml`
+- `configs/balanced_realistic_plateaus_hilly_broad_integrated_288.yaml`
+
+Shape-check pilot configs:
+- `configs/pilot_shapecheck_flatearth_peaks_broad_2.yaml`
+- `configs/pilot_shapecheck_flatearth_plateaus_broad_2.yaml`
+- `configs/pilot_shapecheck_realistic_peaks_wavy_2.yaml`
+- `configs/pilot_shapecheck_realistic_peaks_hilly_2.yaml`
+- `configs/pilot_shapecheck_realistic_plateaus_wavy_2.yaml`
+- `configs/pilot_shapecheck_realistic_plateaus_hilly_2.yaml`
+
+New sweep knobs:
+- `seed` can now be swept to create true replicate runs with different planted peaks.
+- `emit_pmf_csv` controls whether simulation writes `pmf.csv` outputs:
+  - set `true` for PMF/overlay sanity-check runs
+  - set `false` for production sweeps that do not need PMF-derived diagnostics
+
 
 ### TF-vs-Histone Boundary
 - `tf_sigma` controls planted signal width.

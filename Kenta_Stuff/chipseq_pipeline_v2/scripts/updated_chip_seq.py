@@ -80,6 +80,8 @@ parser.add_argument('--output_fasta2', required=True,
     help='Path to write mate 2 (R2) reads in FASTA format.')
 parser.add_argument('--pmf_csv', type=str, default=None,
     help='Path to CSV file storing PMF and variance per bin')
+parser.add_argument('--skip_pmf_csv', action='store_true',
+    help='Do not write a PMF CSV, even when FASTA input is provided.')
 parser.add_argument('--planted_peaks_bed', type=str, default=None,
     help='Path to BED file storing planted peak centers (1-bp intervals).')
 
@@ -108,9 +110,10 @@ nb_k = args.nb_k
 output_fasta1 = args.output_fasta1
 output_fasta2 = args.output_fasta2
 pmf_csv = args.pmf_csv
+skip_pmf_csv = args.skip_pmf_csv
 planted_peaks_bed = args.planted_peaks_bed
 
-if not pmf_csv and fasta:
+if not skip_pmf_csv and not pmf_csv and fasta:
     base = os.path.splitext(os.path.basename(fasta))[0]
     pmf_csv = f'{base}_pmf.csv'
 
@@ -443,13 +446,12 @@ if fasta:
     ensure_parent_dir(output_fasta2)
     write_r1_r2_fastas(paired_reads, output_fasta1, output_fasta2)
     
-    if pmf_csv:
+    if pmf_csv and not skip_pmf_csv:
         ensure_parent_dir(pmf_csv)
         write_pmf_csv(genome_pmf, pmf_csv)
     if planted_peaks_bed:
         ensure_parent_dir(planted_peaks_bed)
         write_planted_peaks_bed(planted_peaks, planted_peaks_bed)
-
 
 
 

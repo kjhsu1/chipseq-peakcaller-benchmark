@@ -31,14 +31,14 @@ def build_samples(cfg):
     for (
         genome, acc_key, gc_key, frag, read, nbk, aligner, peakcaller,
         macs2_mode,
-        tf_exp, gc_exp, acc_exp, map_coverage_pct, map_sigma, map_enrich,
+        tf_exp, seed, gc_exp, acc_exp, map_coverage_pct, map_sigma, map_enrich,
         map_exp, use_control
     ) in product(
         cfg["genomes"], cfg["acc_beds"], cfg["gc_bias_sets"],
         cfg["fragment_length"], cfg["read_length"], cfg["nb_k"],
         cfg["aligners"], peakcaller_list,
         macs2_mode_values,
-        cfg["tf_exp"], cfg["gc_exp"], cfg["acc_exp"],
+        cfg["tf_exp"], cfg.get("seed", [42]), cfg["gc_exp"], cfg["acc_exp"],
         cfg.get("map_coverage_pct", [0.0]),
         cfg.get("map_sigma", [5.0]),
         cfg.get("map_enrich", [1.0]),
@@ -64,6 +64,7 @@ def build_samples(cfg):
                     "peakcaller": peakcaller,
                     "macs2_mode": macs2_mode,
                     "tf_exp": tf_exp,
+                    "seed": seed,
                     "gc_exp": gc_exp,
                     "acc_exp": acc_exp,
                     "map_coverage_pct": map_coverage_pct,

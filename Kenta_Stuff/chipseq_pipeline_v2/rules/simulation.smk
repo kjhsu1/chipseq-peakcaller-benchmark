@@ -1,20 +1,28 @@
 # simulation.smk — emits FASTA R1/R2, pmf.csv, and planted peak centers per (run_id, cond)
 
+EMIT_PMF_CSV = bool(config.get("emit_pmf_csv", True))
+PMF_OUTPUT_PATTERN = (
+    "results/{run_id}/{cond}/pmf.csv"
+    if EMIT_PMF_CSV else
+    "results/{run_id}/{cond}/pmf.disabled"
+)
+
 def sim_outputs_for(run_id, cond):
     base = f"results/{run_id}/{cond}"
-    return [
+    outputs = [
         f"{base}/reads_R1.fasta",
         f"{base}/reads_R2.fasta",
-        f"{base}/pmf.csv",
         f"{base}/planted_peaks.bed",
     ]
+    outputs.append(f"{base}/pmf.csv" if EMIT_PMF_CSV else f"{base}/pmf.disabled")
+    return outputs
 
 rule simulate_reads:
     output:
         r1  = "results/{run_id}/{cond}/reads_R1.fasta",
         r2  = "results/{run_id}/{cond}/reads_R2.fasta",
-        pmf = "results/{run_id}/{cond}/pmf.csv",
         peaks = "results/{run_id}/{cond}/planted_peaks.bed",
+        pmf = PMF_OUTPUT_PATTERN,
     params:
         cov       = lambda wc: (find_row(wc.run_id)["coverage_ctrl"]
                                 if wc.cond == "con" else find_row(wc.run_id)["coverage_treat"]),
@@ -25,6 +33,7 @@ rule simulate_reads:
         frag_len  = lambda wc: find_row(wc.run_id)["fragment_length"],
         read_len  = lambda wc: find_row(wc.run_id)["read_length"],
         nb_k      = lambda wc: find_row(wc.run_id)["nb_k"],
+        seed      = lambda wc: find_row(wc.run_id)["seed"],
         fasta     = lambda wc: fasta_path(find_row(wc.run_id)),
         acc_bed   = lambda wc: acc_bed_path(find_row(wc.run_id)),
         gc_bias   = lambda wc: gc_bias_path(find_row(wc.run_id)),
@@ -36,6 +45,10 @@ rule simulate_reads:
         map_sigma = lambda wc: find_row(wc.run_id)["map_sigma"],
         map_enrich = lambda wc: find_row(wc.run_id)["map_enrich"],
         map_exp = lambda wc: find_row(wc.run_id)["map_exp"],
+        pmf_arg = lambda wc, output: (
+            f"--pmf_csv {output.pmf}" if EMIT_PMF_CSV else "--skip_pmf_csv"
+        ),
+        skip_pmf = lambda wc: "true" if not EMIT_PMF_CSV else "false",
     shell:
         r"""
         python -m scripts.updated_chip_seq \
@@ -56,11 +69,15 @@ rule simulate_reads:
           --map_sigma {params.map_sigma} \
           --map_enrich {params.map_enrich} \
           --map_exp {params.map_exp} \
+          --seed {params.seed} \
           --nb_k {params.nb_k} \
           --output_fasta1 {output.r1} \
           --output_fasta2 {output.r2} \
-          --pmf_csv {output.pmf} \
+          {params.pmf_arg} \
           --planted_peaks_bed {output.peaks}
+        if [ "{params.skip_pmf}" = "true" ]; then
+          touch {output.pmf}
+        fi
         """
 
 def sim_all():
