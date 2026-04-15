@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=flat_broad288
+#SBATCH --job-name=real_hilly_peak288
 #SBATCH --account=ikorfgrp
 #SBATCH --partition=high
 #SBATCH --output=/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/slurm_jobs/%j/%x.out
@@ -15,7 +15,7 @@ CONDA_BIN="/cvmfs/hpc.ucdavis.edu/sw/conda/root/bin/conda"
 ENV_PREFIX="/home/kjhsu/.conda/envs/background_project"
 PIPE_SRC="/home/kjhsu/Code/Korflab/chipseq-peakcaller-benchmark/Kenta_Stuff/chipseq_pipeline_v2"
 DATA_ROOT="/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2"
-RUN_NAME="balanced_flatearth_peaks_broad_integrated_288"
+RUN_NAME="balanced_realistic_peaks_hilly_narrow_integrated_288"
 CONFIG_REL="configs/${RUN_NAME}.yaml"
 
 JOB_ROOT="${DATA_ROOT}/work/${SLURM_JOB_ID}"
