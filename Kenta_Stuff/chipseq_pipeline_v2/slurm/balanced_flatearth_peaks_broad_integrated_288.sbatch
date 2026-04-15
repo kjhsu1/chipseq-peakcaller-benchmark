@@ -11,7 +11,7 @@
 set -euo pipefail
 
 CONDA_BIN="/cvmfs/hpc.ucdavis.edu/sw/conda/root/bin/conda"
-ENV_PREFIX="/quobyte/ikorfgrp/home/kjhsu/envs/chipseq_pipeline_v2_peak_for_hpc"
+ENV_PREFIX="/home/kjhsu/.conda/envs/background_project"
 PIPE_SRC="/home/kjhsu/Code/Korflab/chipseq-peakcaller-benchmark/Kenta_Stuff/chipseq_pipeline_v2"
 DATA_ROOT="/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2"
 RUN_NAME="balanced_flatearth_peaks_broad_integrated_288"
@@ -31,6 +31,21 @@ echo "[$(date)] START ${RUN_NAME}"
 echo "job_root=${JOB_ROOT}"
 echo "pipe_src=${PIPE_SRC}"
 echo "env_prefix=${ENV_PREFIX}"
+
+if [[ ! -x "${CONDA_BIN}" ]]; then
+  echo "Missing conda binary: ${CONDA_BIN}" >&2
+  exit 1
+fi
+
+if [[ ! -d "${ENV_PREFIX}" ]]; then
+  echo "Missing conda env: ${ENV_PREFIX}" >&2
+  exit 1
+fi
+
+if ! compgen -G "${PIPE_SRC}/data/indexes/ce11_1pct/bowtie2_index/ce11_1pct*.bt2" > /dev/null; then
+  echo "Missing Bowtie2 index files under ${PIPE_SRC}/data/indexes/ce11_1pct/bowtie2_index" >&2
+  exit 1
+fi
 
 cp -a "${PIPE_SRC}" "${PIPE_RUN}"
 rm -rf "${PIPE_RUN}/results" "${PIPE_RUN}/archived_results" "${PIPE_RUN}/.snakemake"
