@@ -4,6 +4,7 @@
 #SBATCH --partition=high
 #SBATCH --output=/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/slurm_jobs/%j/%x.out
 #SBATCH --error=/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/slurm_jobs/%j/%x.err
+#SBATCH --chdir=/home/kjhsu/Code/Korflab/chipseq-peakcaller-benchmark/Kenta_Stuff/chipseq_pipeline_v2
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=8G
 #SBATCH --time=12:00:00
@@ -23,6 +24,7 @@ RUN_RESULTS="${JOB_ROOT}/results"
 LOG_ROOT="${DATA_ROOT}/archived_results/sweep_logs"
 TS="$(date +%Y%m%d_%H%M%S)"
 LOG_FILE="${LOG_ROOT}/${RUN_NAME}_${TS}.log"
+CONFIG_RUN="${PIPE_RUN}/${CONFIG_REL}"
 
 mkdir -p "${DATA_ROOT}/slurm_jobs/${SLURM_JOB_ID}" "${JOB_ROOT}" "${LOG_ROOT}"
 mkdir -p "/tmp/kjhsu_snakemake_cache/${SLURM_JOB_ID}"
@@ -47,7 +49,8 @@ if ! compgen -G "${PIPE_SRC}/data/indexes/ce11_1pct/bowtie2_index/ce11_1pct*.bt2
   exit 1
 fi
 
-cp -a "${PIPE_SRC}" "${PIPE_RUN}"
+mkdir -p "${PIPE_RUN}"
+cp -a "${PIPE_SRC}/." "${PIPE_RUN}/"
 rm -rf "${PIPE_RUN}/results" "${PIPE_RUN}/archived_results" "${PIPE_RUN}/.snakemake"
 mkdir -p "${RUN_RESULTS}"
 ln -sfn "${RUN_RESULTS}" "${PIPE_RUN}/results"
@@ -61,7 +64,7 @@ set +e
 "${CONDA_BIN}" run -p "${ENV_PREFIX}" snakemake \
   -j "${SLURM_CPUS_PER_TASK}" \
   -s Snakefile.py \
-  --configfile "${CONFIG_REL}" \
+  --configfile "${CONFIG_RUN}" \
   --latency-wait 60 \
   --rerun-incomplete 2>&1 | tee "${LOG_FILE}"
 exit_code=${PIPESTATUS[0]}
