@@ -31,7 +31,7 @@ class RunPaths:
 
     run_id: str
     planted_bed: Path
-    called_narrowpeak: Path
+    called_peak_path: Path
 
 
 """
@@ -166,10 +166,14 @@ def filter_runs(params: pd.DataFrame) -> pd.DataFrame:
 def build_run_paths(results_dir: Path, run_id: str) -> RunPaths:
     """Return paths for planted peaks and called peaks for a run."""
     planted_bed = results_dir / run_id / "treat" / "planted_peaks.bed"
-    called_narrowpeak = (
-        results_dir / run_id / "peaks" / "macs2" / f"{run_id}_peaks.narrowPeak"
-    )
-    return RunPaths(run_id=run_id, planted_bed=planted_bed, called_narrowpeak=called_narrowpeak)
+    macs2_dir = results_dir / run_id / "peaks" / "macs2"
+    candidate_paths = [
+        macs2_dir / f"{run_id}_peaks.bed",
+        macs2_dir / f"{run_id}_peaks.narrowPeak",
+        macs2_dir / f"{run_id}_peaks.broadPeak",
+    ]
+    called_peak_path = next((path for path in candidate_paths if path.exists()), candidate_paths[0])
+    return RunPaths(run_id=run_id, planted_bed=planted_bed, called_peak_path=called_peak_path)
 
 
 def write_manifest(
@@ -205,7 +209,7 @@ def main() -> None:
         run_id = row["run_id"]
         run_paths = build_run_paths(results_dir, run_id)
         planted = load_planted_centers(run_paths.planted_bed)
-        called = load_called_intervals(run_paths.called_narrowpeak)
+        called = load_called_intervals(run_paths.called_peak_path)
         tp_called, total_called, tp_planted, total_planted = compute_overlap_stats(
             planted, called
         )

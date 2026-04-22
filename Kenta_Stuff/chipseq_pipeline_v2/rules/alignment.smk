@@ -13,9 +13,9 @@ rule align_bowtie2:
         bt2 = lambda wc: bowtie2_index(find_row(wc.run_id))
     shell:
         r"""
-        bowtie2 -f -x {params.bt2} -1 {input.r1} -2 {input.r2} \
+        bowtie2 -p {threads} -f -x {params.bt2} -1 {input.r1} -2 {input.r2} \
           | samtools view -b - \
-          | samtools sort -o {output.bam}
+          | samtools sort -@ {threads} -o {output.bam}
         samtools index {output.bam}
         """
 
@@ -32,9 +32,9 @@ rule align_bwa_mem:
         bwa = lambda wc: bwa_index(find_row(wc.run_id))
     shell:
         r"""
-        bwa mem {params.bwa} {input.r1} {input.r2} \
+        bwa mem -t {threads} {params.bwa} {input.r1} {input.r2} \
           | samtools view -b - \
-          | samtools sort -o {output.bam}
+          | samtools sort -@ {threads} -o {output.bam}
         samtools index {output.bam}
         """
 
@@ -50,4 +50,3 @@ def align_all():
 
 rule align_done:
     input: align_all()
-

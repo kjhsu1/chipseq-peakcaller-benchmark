@@ -1,0 +1,109 @@
+balanced_288_run_attempt_history
+generated_from: slurm accounting + archived sweep logs
+
+[balanced_flatearth_peaks_broad_integrated_288]
+attempt_1:
+  job_id: 12119904
+  slurm_name: flat_broad288
+  state: FAILED
+  elapsed: 00:00:52
+  start: 2026-04-14T18:09:52
+  end: 2026-04-14T18:10:44
+  sweep_log: /quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/sweep_logs/balanced_flatearth_peaks_broad_integrated_288_20260414_180952.log
+  archived_results: none
+attempt_2:
+  job_id: 12120188
+  slurm_name: flat_broad288
+  state: COMPLETED
+  elapsed: 01:14:49
+  start: 2026-04-14T18:23:24
+  end: 2026-04-14T19:38:13
+  sweep_log: /quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/sweep_logs/balanced_flatearth_peaks_broad_integrated_288_20260414_182324.log
+  archived_results: /quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/balanced_flatearth_peaks_broad_integrated_288_20260414_182324
+attempt_3:
+  job_id: 12125939
+  slurm_name: flat_broad288
+  state: COMPLETED
+  elapsed: 01:27:12
+  start: 2026-04-14T22:04:50
+  end: 2026-04-14T23:32:02
+  sweep_log: /quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/sweep_logs/balanced_flatearth_peaks_broad_integrated_288_20260414_220450.log
+  archived_results: /quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/balanced_flatearth_peaks_broad_integrated_288_20260414_220450
+  note: this is the successful run used for the six-config sequential series
+
+[balanced_flatearth_plateaus_broad_integrated_288]
+attempt_1:
+  job_id: 12125940
+  slurm_name: flat_plateau288
+  state: COMPLETED
+  elapsed: 01:23:52
+  start: 2026-04-14T23:32:05
+  end: 2026-04-15T00:55:57
+  sweep_log: /quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/sweep_logs/balanced_flatearth_plateaus_broad_integrated_288_20260414_233205.log
+  archived_results: /quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/balanced_flatearth_plateaus_broad_integrated_288_20260414_233205
+
+[balanced_realistic_plateaus_wavy_broad_integrated_288]
+attempt_1:
+  job_id: 12125941
+  slurm_name: real_wavy_plateau288
+  state: COMPLETED
+  elapsed: 01:04:57
+  start: 2026-04-15T00:56:00
+  end: 2026-04-15T02:00:57
+  sweep_log: /quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/sweep_logs/balanced_realistic_plateaus_wavy_broad_integrated_288_20260415_005600.log
+  archived_results: /quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/balanced_realistic_plateaus_wavy_broad_integrated_288_20260415_005600
+
+[balanced_realistic_peaks_wavy_narrow_integrated_288]
+attempt_1:
+  job_id: 12125942
+  slurm_name: real_wavy_peak288
+  state: COMPLETED
+  elapsed: 01:08:33
+  start: 2026-04-15T02:00:59
+  end: 2026-04-15T03:09:32
+  sweep_log: /quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/sweep_logs/balanced_realistic_peaks_wavy_narrow_integrated_288_20260415_020059.log
+  archived_results: /quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/balanced_realistic_peaks_wavy_narrow_integrated_288_20260415_020059
+
+[balanced_realistic_plateaus_hilly_broad_integrated_288]
+attempt_1:
+  job_id: 12125943
+  slurm_name: real_hilly_plateau288
+  state: FAILED
+  elapsed: 00:03:54
+  start: 2026-04-15T03:09:32
+  end: 2026-04-15T03:13:26
+  sweep_log: /quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/sweep_logs/balanced_realistic_plateaus_hilly_broad_integrated_288_20260415_030933.log
+  archived_results: none
+  note: failed during python bytecode cache import issue
+attempt_2:
+  job_id: 12223879
+  slurm_name: real_hilly_plateau288
+  state: CANCELLED
+  elapsed: 09:28:32
+  start: 2026-04-15T12:27:04
+  end: 2026-04-15T21:55:36
+  sweep_log: /quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/sweep_logs/balanced_realistic_plateaus_hilly_broad_integrated_288_20260415_122704.log
+  archived_results: none
+  note: manual stop before 25-core rerun because remaining walltime looked insufficient
+attempt_3:
+  job_id: 12268479
+  slurm_name: real_hilly_plateau288_25c
+  state: COMPLETED
+  elapsed: 01:46:34
+  start: 2026-04-15T22:08:54
+  end: 2026-04-15T23:55:28
+  sweep_log: /quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/sweep_logs/balanced_realistic_plateaus_hilly_broad_integrated_288_25cpu_20260415_220854.log
+  archived_results: /quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/balanced_realistic_plateaus_hilly_broad_integrated_288_20260415_220854
+  note: successful 25-core rerun
+
+[balanced_realistic_peaks_hilly_narrow_integrated_288]
+attempt_1:
+  job_id: 12268481
+  slurm_name: real_hilly_peak288_25c
+  state: COMPLETED
+  elapsed: 01:40:49
+  start: 2026-04-15T23:55:29
+  end: 2026-04-16T01:36:18
+  sweep_log: /quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/sweep_logs/balanced_realistic_peaks_hilly_narrow_integrated_288_25cpu_20260415_235529.log
+  archived_results: /quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/balanced_realistic_peaks_hilly_narrow_integrated_288_20260415_235529
+  note: executed after 12268479 via afterok dependency

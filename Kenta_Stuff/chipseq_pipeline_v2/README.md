@@ -148,6 +148,25 @@ These jobs are designed to:
 Each job executes Snakemake from a job-specific Quobyte work directory so the
 workflow's relative `results/` outputs never write into the repo checkout.
 
+For the balanced 288-run configs, the sequential submitters are:
+- `submit_balanced_288_series.sh` for the full six-config chain
+- `submit_balanced_288_hilly_tail.sh` for rerunning only the remaining hilly pair
+- `submit_balanced_288_hilly_tail_25cpu.sh` for rerunning the remaining hilly pair with `25` CPUs passed to both Slurm and Snakemake
+
+The balanced sbatch jobs now sanitize copied Python bytecode caches in the
+job-specific pipeline workdir and set `PYTHONDONTWRITEBYTECODE=1` before
+launching Snakemake, which avoids stale or partially written `.pyc` files from
+breaking parallel `python -m scripts.updated_chip_seq` imports.
+
+Balanced-report helpers:
+- `scripts/peak_pr_stats.py` computes per-run precision/recall/F1 for one archived config directory
+- `scripts/build_balanced_288_config_report.py` consumes those per-run stats and writes one folder per balanced config with:
+  - `pr_recall_f1_vs_ctrl_coverage.png`
+  - `plot_point_summary.csv`
+  - `data_info.md`
+  - plus a root `README.md` and optional copied `attempt_history.log`
+- `balanced_288_run_attempt_history.log` records the known Slurm/log attempt history for the six balanced configs and their retries
+
 
 ## Config Conventions
 - `peakcaller_list` controls which callers are included in the sweep.

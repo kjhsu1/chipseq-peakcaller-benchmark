@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH --job-name=flat_plateau288
+#SBATCH --job-name=real_hilly_peak288_25c
 #SBATCH --account=ikorfgrp
 #SBATCH --partition=high
 #SBATCH --output=/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/slurm_jobs/%j/%x.out
 #SBATCH --error=/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/slurm_jobs/%j/%x.err
 #SBATCH --chdir=/home/kjhsu/Code/Korflab/chipseq-peakcaller-benchmark/Kenta_Stuff/chipseq_pipeline_v2
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=25
 #SBATCH --mem=15G
 #SBATCH --time=12:00:00
 
@@ -15,7 +15,7 @@ CONDA_BIN="/cvmfs/hpc.ucdavis.edu/sw/conda/root/bin/conda"
 ENV_PREFIX="/home/kjhsu/.conda/envs/background_project"
 PIPE_SRC="/home/kjhsu/Code/Korflab/chipseq-peakcaller-benchmark/Kenta_Stuff/chipseq_pipeline_v2"
 DATA_ROOT="/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2"
-RUN_NAME="balanced_flatearth_plateaus_broad_integrated_288"
+RUN_NAME="balanced_realistic_peaks_hilly_narrow_integrated_288"
 CONFIG_REL="configs/${RUN_NAME}.yaml"
 
 JOB_ROOT="${DATA_ROOT}/work/${SLURM_JOB_ID}"
@@ -23,13 +23,13 @@ PIPE_RUN="${JOB_ROOT}/pipeline"
 RUN_RESULTS="${JOB_ROOT}/results"
 LOG_ROOT="${DATA_ROOT}/archived_results/sweep_logs"
 TS="$(date +%Y%m%d_%H%M%S)"
-LOG_FILE="${LOG_ROOT}/${RUN_NAME}_${TS}.log"
+LOG_FILE="${LOG_ROOT}/${RUN_NAME}_25cpu_${TS}.log"
 CONFIG_RUN="${PIPE_RUN}/${CONFIG_REL}"
 
 mkdir -p "${DATA_ROOT}/slurm_jobs/${SLURM_JOB_ID}" "${JOB_ROOT}" "${LOG_ROOT}"
 mkdir -p "/tmp/kjhsu_snakemake_cache/${SLURM_JOB_ID}"
 
-echo "[$(date)] START ${RUN_NAME}"
+echo "[$(date)] START ${RUN_NAME} cpus=${SLURM_CPUS_PER_TASK}"
 echo "job_root=${JOB_ROOT}"
 echo "pipe_src=${PIPE_SRC}"
 echo "env_prefix=${ENV_PREFIX}"

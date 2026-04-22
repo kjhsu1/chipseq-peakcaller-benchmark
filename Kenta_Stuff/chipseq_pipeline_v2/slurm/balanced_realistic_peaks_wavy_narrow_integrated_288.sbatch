@@ -51,12 +51,14 @@ fi
 
 mkdir -p "${PIPE_RUN}"
 cp -a "${PIPE_SRC}/." "${PIPE_RUN}/"
+find "${PIPE_RUN}" \( -type d -name '__pycache__' -o -type f -name '*.pyc' \) -exec rm -rf {} +
 rm -rf "${PIPE_RUN}/results" "${PIPE_RUN}/archived_results" "${PIPE_RUN}/.snakemake"
 mkdir -p "${RUN_RESULTS}"
 ln -sfn "${RUN_RESULTS}" "${PIPE_RUN}/results"
 ln -sfn "${DATA_ROOT}/archived_results" "${PIPE_RUN}/archived_results"
 
 export XDG_CACHE_HOME="/tmp/kjhsu_snakemake_cache/${SLURM_JOB_ID}"
+export PYTHONDONTWRITEBYTECODE=1
 
 cd "${PIPE_RUN}"
 
