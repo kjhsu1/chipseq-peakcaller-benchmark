@@ -27,6 +27,7 @@ dependencies:
 
   # ---- Workflow / ML ----
   - snakemake-minimal=8.*  # modern Snakemake; pair with conda>=24.7 when possible
+  - pytest
   - hydra-core
   - mlflow
 

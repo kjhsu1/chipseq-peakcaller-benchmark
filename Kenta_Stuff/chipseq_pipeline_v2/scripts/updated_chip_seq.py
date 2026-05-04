@@ -71,7 +71,11 @@ parser.add_argument('--map_enrich', type=float, default=1.0,
 parser.add_argument('--map_exp', type=float, default=1.0,
     help='Exponent to reshape mappability PMF (<1 flattens, >1 sharpens).')
 parser.add_argument('--seed', type=int, default=42,
-    help='Random seed for reproducible TF peak placement')
+    help='Fallback random seed for reproducible simulation components.')
+parser.add_argument('--tf_seed', type=int, default=None,
+    help='Random seed for reproducible TF peak placement. Defaults to --seed.')
+parser.add_argument('--map_seed', type=int, default=None,
+    help='Random seed for reproducible mappability center placement. Defaults to --seed.')
 parser.add_argument('--nb_k', type=float, default=10.0,
     help='Inverse-dispersion (size) parameter k for negative-binomial noise; smaller k ⇒ more variance.')
 parser.add_argument('--output_fasta1', required=True,
@@ -105,6 +109,8 @@ map_sigma = args.map_sigma
 map_enrich = args.map_enrich
 map_exp = args.map_exp
 seed = args.seed
+tf_seed = args.tf_seed
+map_seed = args.map_seed
 read_length = args.read_length
 nb_k = args.nb_k
 output_fasta1 = args.output_fasta1
@@ -135,6 +141,11 @@ if seed is not None:
 Functions
 _________
 """
+
+
+def resolve_component_seed(component_seed: int, fallback_seed: int) -> int:
+    """Return explicit component seed or the shared fallback seed."""
+    return fallback_seed if component_seed is None else component_seed
 
 
 def reverse_complement(seq: str) -> str:
@@ -266,6 +277,7 @@ def create_pmf_all_chroms(
     accessibility_bed: str,
     acc_weight: float,
     seed: int,
+    tf_seed: int,
     gc_bias_params: str,
     tf_exp: float,
     gc_exp: float,
@@ -274,12 +286,14 @@ def create_pmf_all_chroms(
     map_sigma: float,
     map_enrich: float,
     map_exp: float,
+    map_seed: int,
 ) -> Tuple[Dict[str, List[float]], Dict[str, List[int]]]:
     """Build PMF dictionary for all chromosomes with bias modeling."""
 
     genome_pmfs = {}
     planted_peaks = {}
-    rng = np.random.default_rng(seed)
+    tf_rng = np.random.default_rng(resolve_component_seed(tf_seed, seed))
+    map_rng = np.random.default_rng(resolve_component_seed(map_seed, seed))
     gc_params = {'csv': gc_bias_params}
     for chrom_id, seq in lib.read_fasta(fasta):
         if len(seq) < fragment_length:
@@ -293,7 +307,7 @@ def create_pmf_all_chroms(
         )
         length = base.shape[0]
         tf_centers = (
-            rng.integers(0, length, size=tf_peak_count)
+            tf_rng.integers(0, length, size=tf_peak_count)
             if tf_peak_count > 0
             else np.array([], dtype=int)
         )
@@ -305,7 +319,7 @@ def create_pmf_all_chroms(
         acc_bias = build_accessibility_bias_pmf(length, accessibility_bed, acc_weight,
                                                chrom_id.split()[0], exp=acc_exp)
         map_bias = build_mappability_bias_pmf(
-            length, map_coverage_pct, map_sigma, map_enrich, map_exp, rng
+            length, map_coverage_pct, map_sigma, map_enrich, map_exp, map_rng
         )
         combined = base * tf_bias * gc_bias * acc_bias * map_bias
         pmf = combined / combined.sum()
@@ -344,11 +358,13 @@ def sample_genome(
     fragment_length: int,
     read_length: int,
     nb_k: float,
+    seed: int,
 ) -> (List[tuple], Dict[str, np.ndarray]):
     """Return paired-end reads and negative-binomial counts."""
 
     chrom_bias = {}
     seqs = {}
+    read_rng = np.random.default_rng(seed)
     total_bp = 0
     for chrom_id, seq in lib.read_fasta(fasta):
         seqs[chrom_id] = seq
@@ -369,7 +385,7 @@ def sample_genome(
             continue
         pmf = np.array(pmf_list, dtype=float)
         expected_counts = pmf * (chrom_bias[chrom_id] * total_reads)
-        nb_counts = np.random.negative_binomial(
+        nb_counts = read_rng.negative_binomial(
             n=nb_k,
             p=nb_k / (nb_k + expected_counts)
         )
@@ -424,6 +440,7 @@ if fasta:
         accessibility_bed,
         acc_weight,
         seed,
+        tf_seed,
         gc_bias_params,
         tf_exp,
         gc_exp,
@@ -432,6 +449,7 @@ if fasta:
         map_sigma,
         map_enrich,
         map_exp,
+        map_seed,
     )
 
     paired_reads, nb_counts = sample_genome(
@@ -441,6 +459,7 @@ if fasta:
         k,
         read_length,
         nb_k,
+        seed,
     )
     ensure_parent_dir(output_fasta1)
     ensure_parent_dir(output_fasta2)
@@ -452,7 +471,6 @@ if fasta:
     if planted_peaks_bed:
         ensure_parent_dir(planted_peaks_bed)
         write_planted_peaks_bed(planted_peaks, planted_peaks_bed)
-
 
 
 

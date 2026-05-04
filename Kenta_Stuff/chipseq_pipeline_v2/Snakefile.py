@@ -14,6 +14,19 @@ def get_peakcaller_list(cfg):
         "'peakcallers'. The 'peakcallers' parameter dictionary is not a sweep list."
     )
 
+
+def config_bool(name, default):
+    value = config.get(name, default)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "off"}:
+            return False
+    return bool(value)
+
 # ---------- sweep catalog ----------
 def build_samples(cfg):
     S = []
@@ -31,14 +44,17 @@ def build_samples(cfg):
     for (
         genome, acc_key, gc_key, frag, read, nbk, aligner, peakcaller,
         macs2_mode,
-        tf_exp, seed, gc_exp, acc_exp, map_coverage_pct, map_sigma, map_enrich,
+        tf_exp, seed, tf_seed, map_seed, gc_exp, acc_exp, map_coverage_pct, map_sigma, map_enrich,
         map_exp, use_control
     ) in product(
         cfg["genomes"], cfg["acc_beds"], cfg["gc_bias_sets"],
         cfg["fragment_length"], cfg["read_length"], cfg["nb_k"],
         cfg["aligners"], peakcaller_list,
         macs2_mode_values,
-        cfg["tf_exp"], cfg.get("seed", [42]), cfg["gc_exp"], cfg["acc_exp"],
+        cfg["tf_exp"], cfg.get("seed", [42]),
+        cfg.get("tf_seed", cfg.get("seed", [42])),
+        cfg.get("map_seed", cfg.get("seed", [42])),
+        cfg["gc_exp"], cfg["acc_exp"],
         cfg.get("map_coverage_pct", [0.0]),
         cfg.get("map_sigma", [5.0]),
         cfg.get("map_enrich", [1.0]),
@@ -65,6 +81,8 @@ def build_samples(cfg):
                     "macs2_mode": macs2_mode,
                     "tf_exp": tf_exp,
                     "seed": seed,
+                    "tf_seed": tf_seed,
+                    "map_seed": map_seed,
                     "gc_exp": gc_exp,
                     "acc_exp": acc_exp,
                     "map_coverage_pct": map_coverage_pct,
@@ -83,10 +101,11 @@ def build_samples(cfg):
     return S
 
 SAMPLES = build_samples(config)
+SAMPLE_BY_ID = {row["run_id"]: row for row in SAMPLES}
 
 # ---------- helpers shared by modules ----------
 def find_row(run_id):
-    return next(r for r in SAMPLES if r["run_id"] == run_id)
+    return SAMPLE_BY_ID[run_id]
 
 def fasta_path(row):    return config["genome_paths"][row["genome"]]
 def acc_bed_path(row):  return config["accessibility_paths"][row["genome"]][row["acc_key"]]
@@ -112,10 +131,14 @@ include: "rules/alignment.smk"
 include: "rules/peakcalling.smk"
 
 # ---------- global default target ----------
+def retained_alignment_outputs():
+    return align_all() if RETAIN_BAMS else []
+
+
 rule all:
     input:
         rules.sim_done.input,
-        rules.align_done.input,
+        retained_alignment_outputs(),
         rules.peaks_done.input,
         config["params_table"]
     default_target: True

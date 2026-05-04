@@ -26,6 +26,7 @@ dependencies:
 
   # Workflow tools
   - snakemake
+  - pytest
   - hydra-core
   - mlflow
 

@@ -1,0 +1,10 @@
+name: bigwig_tools
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+
+dependencies:
+  - python=3.10
+  - samtools
+  - deeptools

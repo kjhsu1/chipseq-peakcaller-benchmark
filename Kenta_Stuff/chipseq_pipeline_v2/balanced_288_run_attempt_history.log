@@ -107,3 +107,58 @@ attempt_1:
   sweep_log: /quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/sweep_logs/balanced_realistic_peaks_hilly_narrow_integrated_288_25cpu_20260415_235529.log
   archived_results: /quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/balanced_realistic_peaks_hilly_narrow_integrated_288_20260415_235529
   note: executed after 12268479 via afterok dependency
+
+[tfclean_288_retry_notes_2026-05-04]
+context:
+  configs: balanced_tfclean_*_288
+  config_change: tf_exp=1.0; narrow peak tf_sigma increased to 5; broad plateau tf_sigma increased to 20; pmf.csv disabled
+  workflow_change: retain BAMs, drop nonessential simulation/alignment/peakcalling intermediates where possible
+  successful_baseline_for_comparison: six original balanced_*_288 configs completed mostly in about 1h05m to 1h47m per config using the older direct/archive pattern
+
+attempts:
+  - job_id: 13741522
+    script_pattern: 20cpu ikorfgrp/high chain with post-run archive copy
+    state: TIMEOUT
+    result: Snakemake reached 100 percent, then walltime was lost in the final cp -a archive step
+    lesson: avoid running into a large post-Snakemake copy/move phase; write final destination directly or make archive step tiny
+  - job_id: 13750549
+    script_pattern: 128cpu publicgrp/low direct-to-Quobyte early run
+    state: cancelled/stopped during troubleshooting
+    result: output was observable in Quobyte, but progress was slower than expected
+    lesson: direct Quobyte output is inspectable and avoids final copy risk, but high core count does not guarantee speed
+  - job_ids: 13751295,13751296,13751297
+    script_pattern: scratch/move benchmark variants
+    state: cancelled
+    result: no convincing speedup; still exposed to final movement/archive overhead
+    lesson: scratch is not automatically faster for this workflow because many small files still need metadata-heavy sync or move handling
+  - job_ids: 13754333-13754338
+    script_pattern: old successful series structure with adjusted tfclean configs and 25 cores
+    state: cancelled
+    result: first config exceeded the old successful runtime window
+    lesson: matching old Slurm structure alone did not recover the old throughput
+  - job_id: 13757782
+    script_pattern: ikorfgrp/high 25cpu scratch single-job
+    state: cancelled
+    result: exceeded old runtime window without useful visible completion signal
+    lesson: scratch single-job was harder to observe and did not solve the slowdown
+  - job_ids: 13762505,13762506
+    script_pattern: old-vs-new scratch comparison
+    state: stale/failed
+    result: ran roughly 10h without producing expected summaries
+    lesson: do not repeat this benchmark form; it was too expensive for the information gained
+  - job_id: 13765934
+    script_pattern: publicgrp/high performance-change sweep
+    state: cancelled before useful work
+    result: did not start immediately
+    lesson: publicgrp/high was not a practical immediate-start option
+  - job_id: 13765943
+    script_pattern: publicgrp/low scratch performance-change sweep, 128 cores
+    state: cancelled after about 15h
+    result: wrapper log stayed at first config and active Snakemake log stayed 0 bytes
+    lesson: scratch wrapper had poor progress visibility and appeared stalled; do not reuse as-is
+  - job_id: 13783929
+    script: slurm/balanced_tfclean_288_publicgrp_low_128cpu_direct_minimal.sbatch
+    state_at_note_time: RUNNING at 00:41:19
+    observed_progress_at_note_time: first config had 641/864 peak BED outputs, no RUN_COMPLETE yet
+    result: active direct-to-Quobyte run is moving and visible
+    lesson: current best minimal pattern is direct-to-Quobyte, simple Snakemake invocation, one config at a time inside one Slurm allocation, no final bulk copy

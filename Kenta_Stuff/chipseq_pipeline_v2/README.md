@@ -109,6 +109,35 @@ Production configs:
 - `configs/balanced_realistic_plateaus_wavy_broad_integrated_288.yaml`
 - `configs/balanced_realistic_plateaus_hilly_broad_integrated_288.yaml`
 
+TF parameter revision:
+- The original `balanced_*_288.yaml` configs are preserved for traceability.
+- Revised `balanced_tfclean_*_288.yaml` configs use `tf_exp: 1.0` so the
+  planted TF PMF is not sharpened after the Gaussian/enrichment model is built.
+- Peak-shaped `balanced_tfclean_*` configs use `tf_sigma: 5`; the previous
+  `tf_sigma: 1.5` with `tf_exp: 4.0` concentrated most treatment fragments
+  into only a few exact fragment-start bins around planted centers, which made
+  visual pileups look like repeated duplicates rather than a realistic enriched
+  region.
+- Peak-shaped `balanced_tfclean_*` configs use `tf_enrich: [1500, 2500]`.
+  Plateau `balanced_tfclean_*` configs keep `tf_sigma: 20` and use
+  `tf_enrich: [1000, 2500]`.
+- Revised production and pilot configs set `emit_pmf_csv: false`; they create
+  `pmf.disabled` marker files instead of large PMF tables.
+- Hilly configs keep `map_enrich: [10]`; mappability-only tuning put this at
+  the mild end of the tested range, with p95 treatment depth about 2x the
+  nonzero median background depth.
+- Track reruns in `balanced_288_run_attempt_history.log`; archive resulting
+  run directories under the Quobyte `archived_results/` area and regenerate
+  analysis summaries under `analysis_outputs/`.
+
+Revised production configs:
+- `configs/balanced_tfclean_flatearth_peaks_broad_integrated_288.yaml`
+- `configs/balanced_tfclean_flatearth_plateaus_broad_integrated_288.yaml`
+- `configs/balanced_tfclean_realistic_peaks_wavy_narrow_integrated_288.yaml`
+- `configs/balanced_tfclean_realistic_peaks_hilly_narrow_integrated_288.yaml`
+- `configs/balanced_tfclean_realistic_plateaus_wavy_broad_integrated_288.yaml`
+- `configs/balanced_tfclean_realistic_plateaus_hilly_broad_integrated_288.yaml`
+
 Shape-check pilot configs:
 - `configs/pilot_shapecheck_flatearth_peaks_broad_2.yaml`
 - `configs/pilot_shapecheck_flatearth_plateaus_broad_2.yaml`
@@ -119,9 +148,19 @@ Shape-check pilot configs:
 
 New sweep knobs:
 - `seed` can now be swept to create true replicate runs with different planted peaks.
+- `tf_seed` optionally fixes planted TF centers independently of other random simulation steps and defaults to `seed`.
+- `map_seed` optionally fixes mappability Gaussian centers independently of TF placement and defaults to `seed`.
 - `emit_pmf_csv` controls whether simulation writes `pmf.csv` outputs:
   - set `true` for PMF/overlay sanity-check runs
   - set `false` for production sweeps that do not need PMF-derived diagnostics
+- `emit_pmf_disabled_marker` controls whether runs with `emit_pmf_csv: false`
+  retain `pmf.disabled` marker files:
+  - set `true` to keep explicit no-PMF markers
+  - set `false` to omit retained PMF artifacts entirely
+- `retain_bams` controls whether aligned BAM/BAI files are kept after
+  peakcalling:
+  - set `true` for visual QC or curated run packs
+  - set `false` for production sweeps that only need planted peaks and called peaks
 
 
 ### TF-vs-Histone Boundary
@@ -152,6 +191,25 @@ For the balanced 288-run configs, the sequential submitters are:
 - `submit_balanced_288_series.sh` for the full six-config chain
 - `submit_balanced_288_hilly_tail.sh` for rerunning only the remaining hilly pair
 - `submit_balanced_288_hilly_tail_25cpu.sh` for rerunning the remaining hilly pair with `25` CPUs passed to both Slurm and Snakemake
+- `submit_balanced_tfclean_288_series_20cpu.sh` for the revised TF-clean
+  six-config chain, using `20` CPUs and ordering jobs from fastest to slowest
+- `submit_balanced_tfclean_288_series_128cpu.sh` for the revised TF-clean
+  six-config chain with direct-to-archive `results/` output and `128` CPUs
+- `balanced_tfclean_288_publicgrp_8cpu_singlejob.sbatch` for running the six
+  revised TF-clean configs sequentially inside one `publicgrp` allocation,
+  which is capped at `8` CPUs per job on `publicgrp-high-qos`, so the queue
+  wait only happens once
+- `balanced_tfclean_288_publicgrp_low_128cpu_singlejob.sbatch` for the same
+  six-config single-job run on `publicgrp` `low`, using per-config workdir
+  results plus `mv` into `archived_results` on success
+- `submit_tfclean_benchmark_publicgrp_low.sh` submits one representative
+  TF-clean config at `8`, `16`, and `32` CPUs on `publicgrp` `low` so the
+  useful scaling point can be measured before launching a full six-config rerun
+- `submit_balanced_tfclean_288_singlejob_scratch.sh` submits the current
+  preferred six-config TF-clean rerun: one `ikorfgrp` `high` allocation at
+  `25` CPUs, each config runs sequentially on local `/scratch`, and completed
+  config results are copied to Quobyte in the background while the next config
+  computes
 
 The balanced sbatch jobs now sanitize copied Python bytecode caches in the
 job-specific pipeline workdir and set `PYTHONDONTWRITEBYTECODE=1` before
@@ -165,6 +223,8 @@ Balanced-report helpers:
   - `plot_point_summary.csv`
   - `data_info.md`
   - plus a root `README.md` and optional copied `attempt_history.log`
+- `scripts/investigate_peak_recovery.py` traces each run back to planted peak centers and called peak intervals
+- `scripts/summarize_peak_recovery_patterns.py` summarizes false-negative and false-positive seed/locus patterns from those trace outputs
 - `balanced_288_run_attempt_history.log` records the known Slurm/log attempt history for the six balanced configs and their retries
 
 
@@ -173,10 +233,18 @@ Balanced-report helpers:
 - `peakcallers` is the caller-parameter dictionary (flags/genome sizes/etc).
 - `macs2_mode` controls MACS2 decoding strategy (`narrow` or `broad`) and defaults to `["narrow"]`.
 - `use_control` toggles whether peakcallers receive control/input BAM (`[true, false]` sweeps both modes).
+- `seed` is the shared fallback seed for the simulator.
+- `tf_seed` and `map_seed` can be added to configs or sweeps; if omitted they inherit from `seed`.
+- TF planting, mappability-center placement, and read-count noise now use separate RNG streams, so fixing `tf_seed` keeps planted TF centers aligned across categories with the same genome and `tf_peak_count_treat`.
 - MACS2 outputs are normalized to `results/{run_id}/peaks/macs2/{run_id}_peaks.bed` for both modes.
 - Mappability bias is optional. `map_coverage_pct` deterministically sets the number of mappability Gaussian centers:
   - `num_map_peaks = round(num_bins * map_coverage_pct / 100)`
   - `map_sigma`, `map_enrich`, and `map_exp` control the Gaussian shape.
 - Simulation emits `planted_peaks.bed` for each `{run_id}/{cond}`:
   - treatment contains 1-bp planted TF center intervals
-  - control is empty when `tf_peak_count_ctrl = 0`
+  - control is empty when `tf_peak_count_ctrl = 0` and is treated as a temporary intermediate
+- Simulation FASTAs (`reads_R1.fasta`, `reads_R2.fasta`) are temporary
+  intermediates and are removed after alignment consumes them.
+- MACS2 retains the normalized `results/{run_id}/peaks/macs2/{run_id}_peaks.bed`
+  plus the native broad/narrow peak file; the extra `.xls` and `.gappedPeak`
+  side products are pruned after normalization.

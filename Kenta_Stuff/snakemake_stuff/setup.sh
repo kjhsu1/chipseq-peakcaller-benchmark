@@ -2,10 +2,8 @@
 # Script will complement the codex "Setup Script"
 # In AGENTS.md, tell it to source this before anything
 
-INSTALL_DIR="$HOME/.micromamba"
-BIN_DIR="$INSTALL_DIR/bin"
+CONDA="/cvmfs/hpc.ucdavis.edu/sw/conda/root/bin/conda"
+ENV="$HOME/.conda/envs/background_project"
 
-export PATH="$BIN_DIR:$PATH"
-
-eval "$(micromamba shell hook --shell bash)"
-micromamba activate codex-env
+eval "$("$CONDA" shell.bash hook)"
+conda activate "$ENV"

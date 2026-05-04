@@ -1,13 +1,20 @@
 # alignment.smk — produces sorted & indexed BAMs per (run_id, cond) for the chosen aligner
 
+RETAIN_BAMS = config_bool("retain_bams", True)
+
+
+def retained_bam_output(path):
+    """Return retained BAM path or a temporary output based on config."""
+    return path if RETAIN_BAMS else temp(path)
+
 # Bowtie2
 rule align_bowtie2:
     input:
         r1 = "results/{run_id}/{cond}/reads_R1.fasta",
         r2 = "results/{run_id}/{cond}/reads_R2.fasta",
     output:
-        bam = "results/{run_id}/bowtie2/{cond}/aligned.sorted.bam",
-        bai = "results/{run_id}/bowtie2/{cond}/aligned.sorted.bam.bai",
+        bam = retained_bam_output("results/{run_id}/bowtie2/{cond}/aligned.sorted.bam"),
+        bai = retained_bam_output("results/{run_id}/bowtie2/{cond}/aligned.sorted.bam.bai"),
     threads: 4
     params:
         bt2 = lambda wc: bowtie2_index(find_row(wc.run_id))
@@ -25,8 +32,8 @@ rule align_bwa_mem:
         r1 = "results/{run_id}/{cond}/reads_R1.fasta",
         r2 = "results/{run_id}/{cond}/reads_R2.fasta",
     output:
-        bam = "results/{run_id}/bwa-mem/{cond}/aligned.sorted.bam",
-        bai = "results/{run_id}/bwa-mem/{cond}/aligned.sorted.bam.bai",
+        bam = retained_bam_output("results/{run_id}/bwa-mem/{cond}/aligned.sorted.bam"),
+        bai = retained_bam_output("results/{run_id}/bwa-mem/{cond}/aligned.sorted.bam.bai"),
     threads: 4
     params:
         bwa = lambda wc: bwa_index(find_row(wc.run_id))

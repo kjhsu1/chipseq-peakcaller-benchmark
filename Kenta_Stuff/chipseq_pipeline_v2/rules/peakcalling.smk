@@ -46,6 +46,8 @@ rule call_peaks_macs2:
           {params.flags} \
           --outdir {params.outdir}
         cp {params.native_peak} {output.bed}
+        rm -f {params.outdir}/{wildcards.run_id}_peaks.xls
+        rm -f {params.outdir}/{wildcards.run_id}_peaks.gappedPeak
         """
 
 # EPIC2
