@@ -1,0 +1,5 @@
+results_dir: /quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/balanced_tfclean_realistic_peaks_hilly_narrow_integrated_288_20260505_021306
+params_csv: /quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/balanced_tfclean_realistic_peaks_hilly_narrow_integrated_288_20260505_021306/params/run_params.csv
+filter: (gc_exp == 0 and acc_exp == 0) OR (gc_exp > 0 and acc_exp > 0)
+group_by: coverage_ctrl
+included_runs: 288

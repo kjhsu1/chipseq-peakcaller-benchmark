@@ -34,6 +34,9 @@ def build_samples(cfg):
     peakcaller_list = get_peakcaller_list(cfg)
     use_control_values = cfg.get("use_control", [True])
     macs2_mode_values = cfg.get("macs2_mode", ["narrow"])
+    seed_values = cfg.get("seed", [42])
+    tf_seed_values = cfg.get("tf_seed")
+    map_seed_values = cfg.get("map_seed")
     allowed_macs2_modes = {"narrow", "broad"}
     invalid_modes = sorted(set(macs2_mode_values) - allowed_macs2_modes)
     if invalid_modes:
@@ -44,16 +47,14 @@ def build_samples(cfg):
     for (
         genome, acc_key, gc_key, frag, read, nbk, aligner, peakcaller,
         macs2_mode,
-        tf_exp, seed, tf_seed, map_seed, gc_exp, acc_exp, map_coverage_pct, map_sigma, map_enrich,
+        tf_exp, seed, gc_exp, acc_exp, map_coverage_pct, map_sigma, map_enrich,
         map_exp, use_control
     ) in product(
         cfg["genomes"], cfg["acc_beds"], cfg["gc_bias_sets"],
         cfg["fragment_length"], cfg["read_length"], cfg["nb_k"],
         cfg["aligners"], peakcaller_list,
         macs2_mode_values,
-        cfg["tf_exp"], cfg.get("seed", [42]),
-        cfg.get("tf_seed", cfg.get("seed", [42])),
-        cfg.get("map_seed", cfg.get("seed", [42])),
+        cfg["tf_exp"], seed_values,
         cfg["gc_exp"], cfg["acc_exp"],
         cfg.get("map_coverage_pct", [0.0]),
         cfg.get("map_sigma", [5.0]),
@@ -61,43 +62,46 @@ def build_samples(cfg):
         cfg.get("map_exp", [1.0]),
         use_control_values
     ):
-        for cov_t, cov_c in product(cfg["coverage_treat"], cfg["coverage_ctrl"]):
-            for tpc, tsig, tenr in product(cfg["tf_peak_count_treat"],
-                                           cfg["tf_sigma"], cfg["tf_enrich"]):
-                rid += 1
-                S.append({
-                    "run_id": f"{rid:04d}",
-                    "id_ctrl":  f"{rid:04d}_con",
-                    "id_treat": f"{rid:04d}_treat",
-                    # shared
-                    "genome": genome,
-                    "acc_key": acc_key,
-                    "gc_key": gc_key,
-                    "fragment_length": frag,
-                    "read_length": read,
-                    "nb_k": nbk,
-                    "aligner": aligner,
-                    "peakcaller": peakcaller,
-                    "macs2_mode": macs2_mode,
-                    "tf_exp": tf_exp,
-                    "seed": seed,
-                    "tf_seed": tf_seed,
-                    "map_seed": map_seed,
-                    "gc_exp": gc_exp,
-                    "acc_exp": acc_exp,
-                    "map_coverage_pct": map_coverage_pct,
-                    "map_sigma": map_sigma,
-                    "map_enrich": map_enrich,
-                    "map_exp": map_exp,
-                    "use_control": use_control,
-                    # per-condition
-                    "coverage_ctrl":  cov_c,
-                    "coverage_treat": cov_t,
-                    "tf_peak_count_ctrl": 0,      # control has no TF peaks
-                    "tf_peak_count_treat": tpc,
-                    "tf_sigma": tsig,
-                    "tf_enrich": tenr,
-                })
+        tf_seed_axis = tf_seed_values if tf_seed_values is not None else [seed]
+        map_seed_axis = map_seed_values if map_seed_values is not None else [seed]
+        for tf_seed, map_seed in product(tf_seed_axis, map_seed_axis):
+            for cov_t, cov_c in product(cfg["coverage_treat"], cfg["coverage_ctrl"]):
+                for tpc, tsig, tenr in product(cfg["tf_peak_count_treat"],
+                                               cfg["tf_sigma"], cfg["tf_enrich"]):
+                    rid += 1
+                    S.append({
+                        "run_id": f"{rid:04d}",
+                        "id_ctrl":  f"{rid:04d}_con",
+                        "id_treat": f"{rid:04d}_treat",
+                        # shared
+                        "genome": genome,
+                        "acc_key": acc_key,
+                        "gc_key": gc_key,
+                        "fragment_length": frag,
+                        "read_length": read,
+                        "nb_k": nbk,
+                        "aligner": aligner,
+                        "peakcaller": peakcaller,
+                        "macs2_mode": macs2_mode,
+                        "tf_exp": tf_exp,
+                        "seed": seed,
+                        "tf_seed": tf_seed,
+                        "map_seed": map_seed,
+                        "gc_exp": gc_exp,
+                        "acc_exp": acc_exp,
+                        "map_coverage_pct": map_coverage_pct,
+                        "map_sigma": map_sigma,
+                        "map_enrich": map_enrich,
+                        "map_exp": map_exp,
+                        "use_control": use_control,
+                        # per-condition
+                        "coverage_ctrl":  cov_c,
+                        "coverage_treat": cov_t,
+                        "tf_peak_count_ctrl": 0,      # control has no TF peaks
+                        "tf_peak_count_treat": tpc,
+                        "tf_sigma": tsig,
+                        "tf_enrich": tenr,
+                    })
     return S
 
 SAMPLES = build_samples(config)
