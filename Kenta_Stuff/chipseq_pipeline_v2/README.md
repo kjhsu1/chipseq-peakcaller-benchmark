@@ -18,6 +18,32 @@ source ../snakemake_stuff/setup.sh
 pytest tests
 ```
 
+## Real ENCODE SKN-1 BigWig Rebuild
+The repo also carries a lightweight provenance bundle for a local rebuild of
+real `C. elegans` SKN-1 ENCODE/modERN signal tracks from experiment
+`ENCSR012BJM`.
+
+Tracked files are limited to the rebuild recipe and metadata:
+- `scripts/rebuild_real_encode_skn1_bigwigs.sh`
+- `real_data_rebuilds/encode_skn1_ce11_pooled_rebuild_20260503_154535/README.md`
+- `real_data_rebuilds/encode_skn1_ce11_pooled_rebuild_20260503_154535/logs/`
+- `real_data_rebuilds/encode_skn1_ce11_pooled_rebuild_20260503_154535/meta/`
+
+Heavy artifacts remain intentionally untracked:
+- downloaded BAMs
+- coordinate-sorted / pooled BAMs and `.bai`
+- generated BigWigs
+
+Example rebuild invocation:
+```bash
+cd /Users/kentahsu/Code/KorfLab/Background_Forked/Kenta_Stuff/chipseq_pipeline_v2
+conda run -n chipseq_align bash scripts/rebuild_real_encode_skn1_bigwigs.sh \
+  --treat1 /path/to/ENCFF775SIN.bam \
+  --treat2 /path/to/ENCFF927CRC.bam \
+  --control /path/to/ENCFF904DXM.bam \
+  --outdir real_data_rebuilds/encode_skn1_ce11_pooled_rebuild_YYYYMMDD_HHMMSS
+```
+
 ## Precision/Recall Stats
 Compute precision/recall/F1 for called peaks versus planted centers in archived sweep results.
 

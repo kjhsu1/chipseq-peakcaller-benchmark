@@ -1,3 +1,8 @@
 .snakemake/
 results/
 data/indexes/
+.DS_Store
+real_data_rebuilds/*/.DS_Store
+real_data_rebuilds/*/downloads/
+real_data_rebuilds/*/bam/
+real_data_rebuilds/*/bw/

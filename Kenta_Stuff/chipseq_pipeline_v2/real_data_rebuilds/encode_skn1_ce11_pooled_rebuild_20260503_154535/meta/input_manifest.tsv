@@ -1,0 +1,4 @@
+role	accession	description	assembly	file_format	source_url
+treatment_rep1	ENCFF775SIN	eGFP-SKN-1 replicate 1 filtered alignment	ce11	bam	https://www.encodeproject.org/files/ENCFF775SIN/
+treatment_rep2	ENCFF927CRC	eGFP-SKN-1 replicate 2 filtered alignment	ce11	bam	https://www.encodeproject.org/files/ENCFF927CRC/
+control_pooled	ENCFF904DXM	input pooled filtered alignment	ce11	bam	https://www.encodeproject.org/files/ENCFF904DXM/

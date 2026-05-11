@@ -1,0 +1,3 @@
+output_label	relative_path	signal_type	normalization	bin_size_bp	extend_reads_bp
+pooled_treatment_cpm	bw/ENCFF775SIN_ENCFF927CRC.pooled.ce11.CPM.extend125.bin10.bw	treatment_only	CPM	10	125
+pooled_treatment_vs_input_log2	bw/ENCFF775SIN_ENCFF927CRC_vs_ENCFF904DXM.ce11.log2ratio.extend125.bin10.bw	control_aware	log2_ratio_readcount_scaled	10	125
