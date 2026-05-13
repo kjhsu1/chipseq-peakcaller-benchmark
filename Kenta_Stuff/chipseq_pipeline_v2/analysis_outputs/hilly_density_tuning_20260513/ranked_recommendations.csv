@@ -1,0 +1,5 @@
+run_id,map_enrich,mean_depth,median_depth,nonzero_median_depth,p90_depth,p95_depth,p99_depth,max_depth,p95_over_nonzero_median,p99_over_nonzero_median,max_over_nonzero_median,rank_score,recommendation_rank,recommendation
+1,10,5.035,5,5.0,9,10,13,26,2.0,2.6,5.2,3.82,1.0,preferred_mild_candidate
+2,20,5.044,5,5.0,9,10,14,27,2.0,2.8,5.4,3.94,2.0,candidate
+3,50,5.056,5,5.0,9,11,15,37,2.2,3.0,7.4,4.44,3.0,candidate
+4,100,5.016,4,5.0,10,12,16,36,2.4,3.2,7.2,4.72,4.0,candidate

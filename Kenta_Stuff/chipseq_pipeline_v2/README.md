@@ -3,6 +3,19 @@
 This directory contains a Snakemake workflow for simulating CHIP-seq reads,
 aligning them and calling peaks.
 
+## Current Baseline
+- The current controlled baseline is the six TF-clean categories archived under
+  `analysis_outputs/tfclean_balanced_288_config_report_20260505/`.
+- The older eight-category wording is now historical context only; the active
+  benchmark baseline for current summaries is the TF-clean six.
+- Real-study-conditioned work is separated into the sibling pipeline
+  `../chipseq_pipeline_v2_realstudy`.
+- Before running tests or helper scripts in either pipeline, execute:
+
+```bash
+source ../snakemake_stuff/setup.sh
+```
+
 ## Layout
 - `Snakefile.py` – entry point for the workflow.
 - `config.yaml` – base configuration options. Bias exponents (`tf_exp`, `gc_exp`, `acc_exp`, `map_exp`) allow reshaping TF, GC, accessibility and mappability PMFs.

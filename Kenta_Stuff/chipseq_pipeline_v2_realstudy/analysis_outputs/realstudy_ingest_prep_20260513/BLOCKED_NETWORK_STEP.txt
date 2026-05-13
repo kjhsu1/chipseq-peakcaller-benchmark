@@ -1,0 +1,3 @@
+Next blocked step: query live ENCODE or NCBI endpoints for metadata and downloads.
+Exact capability needed: plain network access for curl/wget/API requests.
+Plugin-specific access is optional, not required, unless you want connector-mediated provenance.
