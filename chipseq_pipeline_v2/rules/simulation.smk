@@ -25,6 +25,7 @@ def retained_sim_outputs():
     for row in SAMPLES:
         run_id = row["run_id"]
         outputs.append(f"results/{run_id}/treat/planted_peaks.bed")
+        outputs.append(f"results/{run_id}/treat/planted_peak_intervals.bed")
         if EMIT_PMF_CSV or EMIT_PMF_DISABLED_MARKER:
             outputs.append(pmf_output_path("con").format(run_id=run_id))
             outputs.append(pmf_output_path("treat").format(run_id=run_id))
@@ -36,6 +37,7 @@ rule simulate_reads_con:
         r1=temp("results/{run_id}/con/reads_R1.fasta"),
         r2=temp("results/{run_id}/con/reads_R2.fasta"),
         peaks=temp("results/{run_id}/con/planted_peaks.bed"),
+        peak_intervals=temp("results/{run_id}/con/planted_peak_intervals.bed"),
         pmf=pmf_output("con"),
     params:
         cov=lambda wc: find_row(wc.run_id)["coverage_ctrl"],
@@ -46,8 +48,9 @@ rule simulate_reads_con:
         read_len=lambda wc: find_row(wc.run_id)["read_length"],
         nb_k=lambda wc: find_row(wc.run_id)["nb_k"],
         seed=lambda wc: find_row(wc.run_id)["seed"],
-        tf_seed=lambda wc: find_row(wc.run_id)["tf_seed"],
-        map_seed=lambda wc: find_row(wc.run_id)["map_seed"],
+        tf_seed=lambda wc: find_row(wc.run_id)["treat_tf_seed"],
+        map_seed=lambda wc: find_row(wc.run_id)["control_map_seed"],
+        read_seed=lambda wc: find_row(wc.run_id)["control_read_seed"],
         fasta=lambda wc: fasta_path(find_row(wc.run_id)),
         acc_bed=lambda wc: acc_bed_path(find_row(wc.run_id)),
         gc_bias=lambda wc: gc_bias_path(find_row(wc.run_id)),
@@ -86,11 +89,13 @@ rule simulate_reads_con:
           --seed {params.seed} \
           --tf_seed {params.tf_seed} \
           --map_seed {params.map_seed} \
+          --read_seed {params.read_seed} \
           --nb_k {params.nb_k} \
           --output_fasta1 {output.r1} \
           --output_fasta2 {output.r2} \
           {params.pmf_arg} \
-          --planted_peaks_bed {output.peaks}
+          --planted_peaks_bed {output.peaks} \
+          --planted_peak_intervals_bed {output.peak_intervals}
         if [ "{params.skip_pmf}" = "true" ]; then
           touch {output.pmf}
         fi
@@ -102,6 +107,7 @@ rule simulate_reads_treat:
         r1=temp("results/{run_id}/treat/reads_R1.fasta"),
         r2=temp("results/{run_id}/treat/reads_R2.fasta"),
         peaks="results/{run_id}/treat/planted_peaks.bed",
+        peak_intervals="results/{run_id}/treat/planted_peak_intervals.bed",
         pmf=pmf_output("treat"),
     params:
         cov=lambda wc: find_row(wc.run_id)["coverage_treat"],
@@ -112,8 +118,9 @@ rule simulate_reads_treat:
         read_len=lambda wc: find_row(wc.run_id)["read_length"],
         nb_k=lambda wc: find_row(wc.run_id)["nb_k"],
         seed=lambda wc: find_row(wc.run_id)["seed"],
-        tf_seed=lambda wc: find_row(wc.run_id)["tf_seed"],
-        map_seed=lambda wc: find_row(wc.run_id)["map_seed"],
+        tf_seed=lambda wc: find_row(wc.run_id)["treat_tf_seed"],
+        map_seed=lambda wc: find_row(wc.run_id)["treat_map_seed"],
+        read_seed=lambda wc: find_row(wc.run_id)["treat_read_seed"],
         fasta=lambda wc: fasta_path(find_row(wc.run_id)),
         acc_bed=lambda wc: acc_bed_path(find_row(wc.run_id)),
         gc_bias=lambda wc: gc_bias_path(find_row(wc.run_id)),
@@ -152,11 +159,13 @@ rule simulate_reads_treat:
           --seed {params.seed} \
           --tf_seed {params.tf_seed} \
           --map_seed {params.map_seed} \
+          --read_seed {params.read_seed} \
           --nb_k {params.nb_k} \
           --output_fasta1 {output.r1} \
           --output_fasta2 {output.r2} \
           {params.pmf_arg} \
-          --planted_peaks_bed {output.peaks}
+          --planted_peaks_bed {output.peaks} \
+          --planted_peak_intervals_bed {output.peak_intervals}
         if [ "{params.skip_pmf}" = "true" ]; then
           touch {output.pmf}
         fi

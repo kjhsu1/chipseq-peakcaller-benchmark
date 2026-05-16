@@ -42,4 +42,24 @@ macs2_mode:
 
 enable_alignment_peakcalling_targets: false
 enable_ingest_peakcalling_targets: false
+enable_chips_targets: false
 params_table: "metadata/prototype_run_table.csv"
+
+chips:
+  binary: "chips"
+  study_ids:
+    - geo_gse67028_celegans_h3k9me2_adult
+  reference_fasta_by_assembly:
+    ce11: "references/ce11/genome.fa"
+    mm10: "references/mm10/genome.fa"
+  bowtie2_index_by_assembly:
+    ce11: "indexes/ce11/bowtie2_index"
+    mm10: "indexes/mm10/bowtie2_index"
+  peak_score_column: 4
+  numcopies_histone: 25
+  numcopies_tf: 1000
+  threads: 4
+  genome_size_by_assembly:
+    ce11: 100286401
+    ce11_1pct: 1000000
+    mm10: 2652783500

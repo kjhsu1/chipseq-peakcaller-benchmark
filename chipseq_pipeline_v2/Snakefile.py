@@ -3,6 +3,7 @@
 configfile: "config.yaml"
 
 from itertools import product
+from scripts.seed_helpers import derive_condition_seed
 
 def get_peakcaller_list(cfg):
     if "peakcaller_list" in cfg:
@@ -85,8 +86,14 @@ def build_samples(cfg):
                         "macs2_mode": macs2_mode,
                         "tf_exp": tf_exp,
                         "seed": seed,
+                        "shared_seed_base": seed,
                         "tf_seed": tf_seed,
                         "map_seed": map_seed,
+                        "treat_tf_seed": derive_condition_seed(tf_seed, 11),
+                        "control_map_seed": derive_condition_seed(map_seed, 21),
+                        "treat_map_seed": derive_condition_seed(map_seed, 22),
+                        "control_read_seed": derive_condition_seed(seed, 31),
+                        "treat_read_seed": derive_condition_seed(seed, 32),
                         "gc_exp": gc_exp,
                         "acc_exp": acc_exp,
                         "map_coverage_pct": map_coverage_pct,
@@ -119,7 +126,14 @@ def bowtie2_index(row): return config["indexes"][row["genome"]]["bowtie2_index"]
 def bwa_index(row):     return config["indexes"][row["genome"]]["bwa_index"]
 
 def macs2_gsize(row):   return config["peakcallers"]["macs2"]["genome_size"][row["genome"]]
-def macs2_flags():      return config["peakcallers"]["macs2"].get("flags", "")
+def macs2_flags():
+    macs2_cfg = config["peakcallers"]["macs2"]
+    preset = macs2_cfg.get("preset")
+    if preset == "benchmark_control_sensitive_default":
+        return "-f BAMPE --nomodel --extsize 147 --keep-dup auto -q 0.01"
+    if preset == "benchmark_permissive_legacy":
+        return "-f BAMPE --nomodel --extsize 147 --keep-dup all --nolambda -q 0.5"
+    return macs2_cfg.get("flags", "")
 def epic2_flags():      return config["peakcallers"].get("epic2", {}).get("flags", "")
 
 # ---------- parameter manifest ----------

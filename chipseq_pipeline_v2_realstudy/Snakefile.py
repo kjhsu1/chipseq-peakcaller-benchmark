@@ -83,6 +83,7 @@ include: "rules/build_reference_intensity.smk"
 include: "rules/simulation.smk"
 include: "rules/alignment.smk"
 include: "rules/peakcalling.smk"
+include: "rules/chips_simulation.smk"
 
 
 def default_targets():
@@ -95,6 +96,8 @@ def default_targets():
         targets.extend(peaks_all())
     if config_bool("enable_ingest_peakcalling_targets", False):
         targets.extend(ingested_peak_targets())
+    if config_bool("enable_chips_targets", False):
+        targets.extend(chips_peak_targets())
     return targets
 
 

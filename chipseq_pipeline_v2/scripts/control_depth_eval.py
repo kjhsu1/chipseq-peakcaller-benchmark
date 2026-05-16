@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, NamedTuple, Optional, Tuple
 
 import matplotlib
 
@@ -14,9 +13,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from scripts.eval_helpers import counts_to_metrics, resolve_peak_path
 
-@dataclass(frozen=True)
-class OverlapCounts:
+
+class OverlapCounts(NamedTuple):
+    """Plain immutable container for overlap count totals."""
+
     tp_called: int
     total_called: int
     tp_planted: int
@@ -37,15 +39,6 @@ def resolve_groups(input_dirs: List[Path], labels: List[str]) -> Dict[Path, Opti
             raise ValueError("--group-labels must match --input-dirs length")
         return {p: labels[i] for i, p in enumerate(input_dirs)}
     return {p: None for p in input_dirs}
-
-
-def resolve_peak_path(results_dir: Path, run_id: str, peakcaller: str) -> Path:
-    if peakcaller == "epic2":
-        return results_dir / run_id / "peaks" / "epic2" / f"{run_id}_domains.bed"
-    normalized = results_dir / run_id / "peaks" / "macs2" / f"{run_id}_peaks.bed"
-    if normalized.exists():
-        return normalized
-    return results_dir / run_id / "peaks" / "macs2" / f"{run_id}_peaks.narrowPeak"
 
 
 def classify_category(row: pd.Series) -> Optional[str]:
@@ -92,6 +85,13 @@ def infer_method_combo(row: pd.Series) -> str:
     aligner = str(row.get("aligner", "unknown"))
     peakcaller = str(row.get("peakcaller", "unknown"))
     return f"{aligner}+{peakcaller}"
+
+
+def truth_path_for_row(results_dir: Path, row: pd.Series) -> Path:
+    """Return the appropriate planted-truth file for one run."""
+    if str(row.get("peakcaller", "macs2")) == "epic2" or str(row.get("macs2_mode", "narrow")) == "broad":
+        return results_dir / row["run_id"] / "treat" / "planted_peak_intervals.bed"
+    return results_dir / row["run_id"] / "treat" / "planted_peaks.bed"
 
 
 def load_planted_centers(path: Path) -> Dict[str, set[int]]:
@@ -162,10 +162,18 @@ def compute_summary(per_run: pd.DataFrame, group_cols: List[str]) -> pd.DataFram
         .sort_values(group_cols + ["ratio"])
     )
 
-    summary["precision"] = np.where(summary["total_called"] > 0, summary["tp_called"] / summary["total_called"], 0.0)
-    summary["recall"] = np.where(summary["total_planted"] > 0, summary["tp_planted"] / summary["total_planted"], 0.0)
-    denom = summary["precision"] + summary["recall"]
-    summary["f1"] = np.where(denom > 0, 2 * (summary["precision"] * summary["recall"]) / denom, 0.0)
+    metrics = summary.apply(
+        lambda row: counts_to_metrics(
+            row["tp_called"],
+            row["total_called"],
+            row["tp_planted"],
+            row["total_planted"],
+        ),
+        axis=1,
+        result_type="expand",
+    )
+    metrics.columns = ["precision", "recall", "f1"]
+    summary[["precision", "recall", "f1"]] = metrics
     summary["fdr"] = 1.0 - summary["precision"]
 
     summary["inflation"] = np.nan
@@ -196,10 +204,18 @@ def compute_aggregate_table(per_run: pd.DataFrame, group_cols: List[str]) -> pd.
         .sort_values(group_cols)
     )
 
-    summary["precision"] = np.where(summary["total_called"] > 0, summary["tp_called"] / summary["total_called"], 0.0)
-    summary["recall"] = np.where(summary["total_planted"] > 0, summary["tp_planted"] / summary["total_planted"], 0.0)
-    denom = summary["precision"] + summary["recall"]
-    summary["f1"] = np.where(denom > 0, 2 * (summary["precision"] * summary["recall"]) / denom, 0.0)
+    metrics = summary.apply(
+        lambda row: counts_to_metrics(
+            row["tp_called"],
+            row["total_called"],
+            row["tp_planted"],
+            row["total_planted"],
+        ),
+        axis=1,
+        result_type="expand",
+    )
+    metrics.columns = ["precision", "recall", "f1"]
+    summary[["precision", "recall", "f1"]] = metrics
     summary["fdr"] = 1.0 - summary["precision"]
 
     if "method_combo" in group_cols:
@@ -316,12 +332,12 @@ def main() -> None:
         params = pd.read_csv(params_csv, dtype={"run_id": str})
         for row in params.itertuples(index=False):
             run_id = row.run_id
-            planted_path = input_dir / run_id / "treat" / "planted_peaks.bed"
+            row_series = pd.Series(row._asdict())
+            planted_path = truth_path_for_row(input_dir, row_series)
             peak_path = resolve_peak_path(input_dir, run_id, getattr(row, "peakcaller", "macs2"))
             if not planted_path.exists() or not peak_path.exists():
                 continue
 
-            row_series = pd.Series(row._asdict())
             category = group_map[input_dir] or classify_category(row_series)
             if category is None:
                 continue

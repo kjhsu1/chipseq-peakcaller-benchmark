@@ -43,7 +43,7 @@ gc_bias_paths:
 
 peakcallers:
   macs2:
-    flags: "-f BAMPE --nomodel --extsize 147 --keep-dup all --nolambda -q 0.5"
+    preset: "benchmark_control_sensitive_default"
     genome_size:
       ce11_1pct: "1.0e6"
 

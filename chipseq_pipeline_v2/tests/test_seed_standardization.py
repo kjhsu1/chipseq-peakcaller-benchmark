@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from scripts.seed_helpers import derive_condition_seed
+
 
 """Functions"""
 
@@ -49,6 +51,7 @@ def run_simulation(
     r1 = out_dir / "reads_R1.fasta"
     r2 = out_dir / "reads_R2.fasta"
     planted = out_dir / "planted_peaks.bed"
+    planted_intervals = out_dir / "planted_peak_intervals.bed"
     pmf_csv = out_dir / "pmf.csv"
 
     defaults = {
@@ -73,6 +76,7 @@ def run_simulation(
         "--output_fasta2", str(r2),
         "--pmf_csv", str(pmf_csv),
         "--planted_peaks_bed", str(planted),
+        "--planted_peak_intervals_bed", str(planted_intervals),
     ]
     for key, value in defaults.items():
         cmd.extend([key, value])
@@ -124,3 +128,58 @@ def test_map_seed_keeps_mappability_fixed_when_general_seed_changes(tmp_path):
         ],
     )
     assert read_pmf_rows(pmf_a) == read_pmf_rows(pmf_b)
+
+
+def test_condition_seed_derivation_is_distinct():
+    """Condition-specific seed derivation should separate control and treatment RNGs."""
+    base_seed = 101
+    assert derive_condition_seed(base_seed, 31) != derive_condition_seed(base_seed, 32)
+    assert derive_condition_seed(base_seed, 21) != derive_condition_seed(base_seed, 22)
+
+
+def test_read_seed_changes_reads_without_changing_truth_or_pmf(tmp_path):
+    """Read-seed changes should affect reads, not planted peaks or PMFs."""
+    repo_root = Path(__file__).resolve().parents[1]
+    fasta = tmp_path / "toy.fa"
+    write_fasta(fasta)
+
+    def run_named(name: str, read_seed: str) -> tuple[list[str], list[str], list[dict[str, str]]]:
+        out_dir = tmp_path / name
+        out_dir.mkdir()
+        r1 = out_dir / "reads_R1.fasta"
+        r2 = out_dir / "reads_R2.fasta"
+        planted = out_dir / "planted_peaks.bed"
+        planted_intervals = out_dir / "planted_peak_intervals.bed"
+        pmf_csv = out_dir / "pmf.csv"
+        cmd = [
+            sys.executable,
+            "-m",
+            "scripts.updated_chip_seq",
+            "--fasta", str(fasta),
+            "--coverage", "1",
+            "--fragment_length", "10",
+            "--read_length", "5",
+            "--tf_sigma", "1.5",
+            "--tf_enrich", "4",
+            "--nb_k", "1000",
+            "--seed", "101",
+            "--tf_seed", "11",
+            "--map_seed", "23",
+            "--read_seed", read_seed,
+            "--map_coverage_pct", "20",
+            "--map_sigma", "1.5",
+            "--map_enrich", "5",
+            "--output_fasta1", str(r1),
+            "--output_fasta2", str(r2),
+            "--pmf_csv", str(pmf_csv),
+            "--planted_peaks_bed", str(planted),
+            "--planted_peak_intervals_bed", str(planted_intervals),
+        ]
+        subprocess.run(cmd, check=True, cwd=repo_root)
+        return read_lines(planted), read_lines(r1), read_pmf_rows(pmf_csv)
+
+    planted_a, reads_a, pmf_a = run_named("read_seed_a", "31")
+    planted_b, reads_b, pmf_b = run_named("read_seed_b", "32")
+    assert planted_a == planted_b
+    assert pmf_a == pmf_b
+    assert reads_a != reads_b

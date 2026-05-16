@@ -24,6 +24,8 @@ source ../snakemake_stuff/setup.sh
 - `rules/` – Snakemake rule files.
 - `scripts/` – helper scripts used by the rules.
 - `tests/` – unit tests for pipeline utilities.
+- `docs/epic2_tfclean_sweep.md` – matched EPIC2 follow-up sweep plan and
+  cluster launch notes.
 
 ## Running Tests
 ```bash
@@ -81,6 +83,9 @@ python scripts/peak_pr_stats.py \
 This writes a timestamped folder under `archived_results/` with:
 - `per_run_stats.csv`
 - `group_summary.csv`
+- `group_summary_counts_based.csv`
+- `group_summary_mean_of_runs.csv`
+- `metric_definition.md`
 - `run_filter_manifest.txt`
 
 ## Control-Depth Sweep (128 runs)
@@ -202,6 +207,8 @@ New sweep knobs:
 - `seed` can now be swept to create true replicate runs with different planted peaks.
 - `tf_seed` optionally fixes planted TF centers independently of other random simulation steps and defaults to `seed`.
 - `map_seed` optionally fixes mappability Gaussian centers independently of TF placement and defaults to `seed`.
+- production sweeps now derive condition-specific seeds internally so treatment
+  and control no longer share the same read or mappability RNG stream.
 - `emit_pmf_csv` controls whether simulation writes `pmf.csv` outputs:
   - set `true` for PMF/overlay sanity-check runs
   - set `false` for production sweeps that do not need PMF-derived diagnostics
@@ -213,6 +220,10 @@ New sweep knobs:
   peakcalling:
   - set `true` for visual QC or curated run packs
   - set `false` for production sweeps that only need planted peaks and called peaks
+- balanced TF-clean configs now use the MACS2 preset
+  `benchmark_control_sensitive_default`; legacy permissive settings remain
+  reproducible through the `benchmark_permissive_legacy` preset or explicit
+  `peakcallers.macs2.flags`.
 
 
 ### TF-vs-Histone Boundary
@@ -262,6 +273,9 @@ For the balanced 288-run configs, the sequential submitters are:
   `25` CPUs, each config runs sequentially on local `/scratch`, and completed
   config results are copied to Quobyte in the background while the next config
   computes
+- `submit_epic2_tfclean_1728_series.sh` submits the matched six-config EPIC2
+  comparison sweep. This is cluster-only; local validation is limited to config
+  parsing and run-table checks unless Snakemake/EPIC2 are installed locally.
 
 The balanced sbatch jobs now sanitize copied Python bytecode caches in the
 job-specific pipeline workdir and set `PYTHONDONTWRITEBYTECODE=1` before

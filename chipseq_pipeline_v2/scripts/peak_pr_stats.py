@@ -5,12 +5,24 @@ Compute precision/recall/F1 for peak calls vs planted peak centers.
 """Imports"""
 
 import argparse
-from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Iterable, List, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 import pandas as pd
+
+from scripts.eval_helpers import (
+    aggregate_counts_summary,
+    aggregate_mean_of_runs_summary,
+    counts_to_metrics,
+    metric_definition_lines,
+    resolve_peak_path,
+)
+
+try:
+    import pysam
+except ImportError:  # pragma: no cover - optional runtime dependency
+    pysam = None
 
 
 """
@@ -23,15 +35,6 @@ DEFAULT_RESULTS_DIR = Path("archived_results/results_tf_gcacc_ctrl_sweep32_clean
 """
 Data Structures
 """
-
-
-@dataclass(frozen=True)
-class RunPaths:
-    """Paths for a single run's planted peaks and called peaks."""
-
-    run_id: str
-    planted_bed: Path
-    called_peak_path: Path
 
 
 """
@@ -163,17 +166,41 @@ def filter_runs(params: pd.DataFrame) -> pd.DataFrame:
     return params[unbiased | both_biased].copy()
 
 
-def build_run_paths(results_dir: Path, run_id: str) -> RunPaths:
-    """Return paths for planted peaks and called peaks for a run."""
-    planted_bed = results_dir / run_id / "treat" / "planted_peaks.bed"
-    macs2_dir = results_dir / run_id / "peaks" / "macs2"
-    candidate_paths = [
-        macs2_dir / f"{run_id}_peaks.bed",
-        macs2_dir / f"{run_id}_peaks.narrowPeak",
-        macs2_dir / f"{run_id}_peaks.broadPeak",
-    ]
-    called_peak_path = next((path for path in candidate_paths if path.exists()), candidate_paths[0])
-    return RunPaths(run_id=run_id, planted_bed=planted_bed, called_peak_path=called_peak_path)
+def truth_mode_for_row(row: pd.Series) -> str:
+    """Return the truth mode used for a run."""
+    macs2_mode = str(row.get("macs2_mode", "narrow"))
+    peakcaller = str(row.get("peakcaller", "macs2"))
+    if peakcaller == "epic2" or macs2_mode == "broad":
+        return "interval"
+    return "center"
+
+
+def planted_truth_path(results_dir: Path, row: pd.Series) -> Path:
+    """Return the planted truth path for a run."""
+    run_id = row["run_id"]
+    if truth_mode_for_row(row) == "interval":
+        return results_dir / run_id / "treat" / "planted_peak_intervals.bed"
+    return results_dir / run_id / "treat" / "planted_peaks.bed"
+
+
+def bam_path(results_dir: Path, row: pd.Series, cond: str) -> Path:
+    """Return BAM path for one run and condition."""
+    return results_dir / row["run_id"] / row["aligner"] / cond / "aligned.sorted.bam"
+
+
+def file_size_or_none(path: Path) -> Optional[int]:
+    """Return file size when present."""
+    if path.exists():
+        return path.stat().st_size
+    return None
+
+
+def bam_mapped_reads_or_none(path: Path) -> Optional[int]:
+    """Return mapped BAM read count when possible."""
+    if not path.exists() or pysam is None:
+        return None
+    with pysam.AlignmentFile(path, "rb") as handle:
+        return int(handle.mapped)
 
 
 def write_manifest(
@@ -189,6 +216,7 @@ def write_manifest(
         f"params_csv: {params_csv}",
         "filter: (gc_exp == 0 and acc_exp == 0) OR (gc_exp > 0 and acc_exp > 0)",
         f"group_by: {group_by}",
+        "headline_aggregation: ratio_of_summed_counts",
         f"included_runs: {run_count}",
     ]
     (output_dir / "run_filter_manifest.txt").write_text("\n".join(manifest), encoding="utf-8")
@@ -207,15 +235,18 @@ def main() -> None:
     per_run_rows = []
     for _, row in filtered.iterrows():
         run_id = row["run_id"]
-        run_paths = build_run_paths(results_dir, run_id)
-        planted = load_planted_centers(run_paths.planted_bed)
-        called = load_called_intervals(run_paths.called_peak_path)
+        planted_path = planted_truth_path(results_dir, row)
+        called_peak_path = resolve_peak_path(results_dir, run_id, str(row.get("peakcaller", "macs2")))
+        planted = load_planted_centers(planted_path)
+        called = load_called_intervals(called_peak_path)
         tp_called, total_called, tp_planted, total_planted = compute_overlap_stats(
             planted, called
         )
-        precision, recall, f1 = precision_recall_f1(
+        precision, recall, f1 = counts_to_metrics(
             tp_called, total_called, tp_planted, total_planted
         )
+        control_bam = bam_path(results_dir, row, "con")
+        treatment_bam = bam_path(results_dir, row, "treat")
         per_run_rows.append(
             {
                 "run_id": run_id,
@@ -226,6 +257,16 @@ def main() -> None:
                 "precision": precision,
                 "recall": recall,
                 "f1": f1,
+                "truth_mode": truth_mode_for_row(row),
+                "planted_truth_path": str(planted_path),
+                "called_peak_path": str(called_peak_path),
+                "called_peak_size_bytes": file_size_or_none(called_peak_path),
+                "control_bam_path": str(control_bam),
+                "control_bam_size_bytes": file_size_or_none(control_bam),
+                "control_mapped_reads": bam_mapped_reads_or_none(control_bam),
+                "treat_bam_path": str(treatment_bam),
+                "treat_bam_size_bytes": file_size_or_none(treatment_bam),
+                "treat_mapped_reads": bam_mapped_reads_or_none(treatment_bam),
                 **{col: row[col] for col in row.index if col not in {"run_id"}},
             }
         )
@@ -234,17 +275,23 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     per_run_df.to_csv(output_dir / "per_run_stats.csv", index=False)
 
-    group_summary = (
-        per_run_df.groupby(args.group_by)[["precision", "recall", "f1"]]
-        .mean()
-        .reset_index()
-    )
-    group_summary["n_runs"] = (
-        per_run_df.groupby(args.group_by)["run_id"].count().values
-    )
+    group_summary = aggregate_counts_summary(per_run_df, [args.group_by])
     group_summary.to_csv(output_dir / "group_summary.csv", index=False)
+    group_summary.to_csv(output_dir / "group_summary_counts_based.csv", index=False)
+    mean_of_runs_summary = aggregate_mean_of_runs_summary(per_run_df, [args.group_by])
+    mean_of_runs_summary.to_csv(output_dir / "group_summary_mean_of_runs.csv", index=False)
 
     write_manifest(output_dir, params_csv, results_dir, args.group_by, len(per_run_df))
+    metric_definition = metric_definition_lines(
+        truth_mode="center for narrow runs; interval for broad or epic2 runs",
+        aggregation_rule="ratio_of_summed_counts for headline summaries; mean_of_runs emitted separately",
+        caller_settings="caller-specific paths resolved from run metadata",
+        evaluation_scope=f"grouped by `{args.group_by}`",
+    )
+    (output_dir / "metric_definition.md").write_text(
+        "\n".join(metric_definition) + "\n",
+        encoding="utf-8",
+    )
 
 
 main()

@@ -2,6 +2,17 @@ rule build_prototype_run_table:
     output:
         csv=config["params_table"],
         meta="metadata/prototype_run_table.summary.json"
+    params:
+        study_ids=lambda wc: " ".join(config["study_ids"]),
+        study_depths_csv=lambda wc: config["study_depths_csv"],
+        coverage_treat=lambda wc: " ".join(str(value) for value in config["coverage_treat"]),
+        coverage_ctrl=lambda wc: " ".join(str(value) for value in config["coverage_ctrl"]),
+        seed=lambda wc: " ".join(str(value) for value in config["seed"]),
+        fragment_length=lambda wc: " ".join(str(value) for value in config["fragment_length"]),
+        read_length=lambda wc: " ".join(str(value) for value in config["read_length"]),
+        aligners=lambda wc: " ".join(config["aligners"]),
+        peakcallers=lambda wc: " ".join(config["peakcaller_list"]),
+        macs2_mode=lambda wc: " ".join(config["macs2_mode"])
     shell:
         """
         python scripts/sample_reads_from_intensity.py \
@@ -20,14 +31,3 @@ rule build_prototype_run_table:
           --output-csv {output.csv} \
           --output-json {output.meta}
         """
-    params:
-        study_ids=lambda wc: " ".join(config["study_ids"]),
-        study_depths_csv=lambda wc: config["study_depths_csv"],
-        coverage_treat=lambda wc: " ".join(str(value) for value in config["coverage_treat"]),
-        coverage_ctrl=lambda wc: " ".join(str(value) for value in config["coverage_ctrl"]),
-        seed=lambda wc: " ".join(str(value) for value in config["seed"]),
-        fragment_length=lambda wc: " ".join(str(value) for value in config["fragment_length"]),
-        read_length=lambda wc: " ".join(str(value) for value in config["read_length"]),
-        aligners=lambda wc: " ".join(config["aligners"]),
-        peakcallers=lambda wc: " ".join(config["peakcaller_list"]),
-        macs2_mode=lambda wc: " ".join(config["macs2_mode"])

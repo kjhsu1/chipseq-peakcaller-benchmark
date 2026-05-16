@@ -14,6 +14,11 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from scripts.eval_helpers import (
+    aggregate_counts_summary,
+    metric_definition_lines,
+)
+
 
 """Functions"""
 
@@ -88,29 +93,9 @@ def summarize_parameter_values(data: pd.DataFrame) -> Tuple[List[str], List[str]
 
 def aggregate_plot_points(data: pd.DataFrame) -> pd.DataFrame:
     """Aggregate per-run stats into one plot point per control/treatment pair."""
-    summary = (
-        data.groupby(["coverage_treat", "coverage_ctrl"], as_index=False)
-        .agg(
-            tp_called=("tp_called", "sum"),
-            total_called=("total_called", "sum"),
-            tp_planted=("tp_planted", "sum"),
-            total_planted=("total_planted", "sum"),
-            n_runs=("run_id", "count"),
-        )
-        .sort_values(["coverage_treat", "coverage_ctrl"])
-    )
+    summary = aggregate_counts_summary(data, ["coverage_treat", "coverage_ctrl"])
     summary["coverage_treat"] = summary["coverage_treat"].astype(float)
     summary["coverage_ctrl"] = summary["coverage_ctrl"].astype(float)
-    summary["precision"] = summary["tp_called"] / summary["total_called"]
-    summary["precision"] = summary["precision"].fillna(0.0)
-    summary["recall"] = summary["tp_planted"] / summary["total_planted"]
-    summary["recall"] = summary["recall"].fillna(0.0)
-    denom = summary["precision"] + summary["recall"]
-    summary["f1"] = 0.0
-    valid = denom > 0
-    summary.loc[valid, "f1"] = (
-        2 * summary.loc[valid, "precision"] * summary.loc[valid, "recall"] / denom.loc[valid]
-    )
     return summary
 
 
@@ -209,10 +194,10 @@ def write_info_file(
     lines.extend(
         [
             "",
-            "## Plot Point Counts",
-            "",
-            "| coverage_treat | coverage_ctrl | n_runs | total_called | total_planted | precision | recall | f1 |",
-            "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+        "## Plot Point Counts",
+        "",
+        "| coverage_treat | coverage_ctrl | n_runs | total_called | total_planted | precision | recall | f1 |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
         ]
     )
     for row in summary.itertuples(index=False):
@@ -225,6 +210,19 @@ def write_info_file(
     output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def write_metric_definition_file(output_path: Path, data: pd.DataFrame) -> None:
+    """Write the metric-definition contract for one category directory."""
+    truth_modes = ", ".join(sorted(data["truth_mode"].dropna().astype(str).unique().tolist()))
+    macs2_settings = ", ".join(sorted(data["macs2_mode"].dropna().astype(str).unique().tolist()))
+    lines = metric_definition_lines(
+        truth_mode=truth_modes or "unknown",
+        aggregation_rule="ratio_of_summed_counts for plot_point_summary and group_summary",
+        caller_settings=f"peakcallers from per-run metadata; macs2 modes: {macs2_settings or 'unknown'}",
+        evaluation_scope="per category, grouped by coverage_treat and coverage_ctrl",
+    )
+    output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def write_root_readme(output_dir: Path, categories: List[Tuple[str, str]]) -> None:
     """Write a root README listing category folders and their contents."""
     lines = [
@@ -233,8 +231,10 @@ def write_root_readme(output_dir: Path, categories: List[Tuple[str, str]]) -> No
         "This directory contains one subdirectory per completed balanced 288 config.",
         "Each category folder includes:",
         "- `per_run_stats.csv` produced by `scripts/peak_pr_stats.py`",
-        "- `group_summary.csv` produced by `scripts/peak_pr_stats.py`",
+        "- `group_summary.csv` produced by `scripts/peak_pr_stats.py` using counts-based aggregation",
+        "- `group_summary_mean_of_runs.csv` with secondary mean-of-runs metrics",
         "- `plot_point_summary.csv` with one aggregated plot point per treatment/control pair",
+        "- `metric_definition.md` describing truth mode, aggregation, and caller settings",
         "- `pr_recall_f1_vs_ctrl_coverage.png` with 3 panels and one curve per treatment coverage",
         "- `data_info.md` summarizing the source data, swept parameters, and point counts",
         "",
@@ -291,6 +291,7 @@ def main() -> None:
             swept_lines=swept_lines,
             summary=summary,
         )
+        write_metric_definition_file(input_dir / "metric_definition.md", data)
         categories.append((category_name, source_results_dir))
 
     if args.attempt_log is not None and args.attempt_log.exists():

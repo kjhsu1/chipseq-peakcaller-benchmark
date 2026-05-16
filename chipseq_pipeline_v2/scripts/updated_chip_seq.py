@@ -76,6 +76,8 @@ parser.add_argument('--tf_seed', type=int, default=None,
     help='Random seed for reproducible TF peak placement. Defaults to --seed.')
 parser.add_argument('--map_seed', type=int, default=None,
     help='Random seed for reproducible mappability center placement. Defaults to --seed.')
+parser.add_argument('--read_seed', type=int, default=None,
+    help='Random seed for read-count sampling. Defaults to --seed.')
 parser.add_argument('--nb_k', type=float, default=10.0,
     help='Inverse-dispersion (size) parameter k for negative-binomial noise; smaller k ⇒ more variance.')
 parser.add_argument('--output_fasta1', required=True,
@@ -88,6 +90,8 @@ parser.add_argument('--skip_pmf_csv', action='store_true',
     help='Do not write a PMF CSV, even when FASTA input is provided.')
 parser.add_argument('--planted_peaks_bed', type=str, default=None,
     help='Path to BED file storing planted peak centers (1-bp intervals).')
+parser.add_argument('--planted_peak_intervals_bed', type=str, default=None,
+    help='Path to BED file storing planted peak support intervals.')
 
 args, _ = parser.parse_known_args()
 
@@ -111,6 +115,7 @@ map_exp = args.map_exp
 seed = args.seed
 tf_seed = args.tf_seed
 map_seed = args.map_seed
+read_seed = args.read_seed
 read_length = args.read_length
 nb_k = args.nb_k
 output_fasta1 = args.output_fasta1
@@ -118,6 +123,7 @@ output_fasta2 = args.output_fasta2
 pmf_csv = args.pmf_csv
 skip_pmf_csv = args.skip_pmf_csv
 planted_peaks_bed = args.planted_peaks_bed
+planted_peak_intervals_bed = args.planted_peak_intervals_bed
 
 if not skip_pmf_csv and not pmf_csv and fasta:
     base = os.path.splitext(os.path.basename(fasta))[0]
@@ -351,6 +357,31 @@ def write_planted_peaks_bed(planted_peaks: Dict[str, List[int]], path: str) -> N
                 fh.write(f"{chrom}\t{start}\t{end}\tpeak_{peak_idx}\n")
                 peak_idx += 1
 
+
+def write_planted_peak_intervals_bed(
+    planted_peaks: Dict[str, List[int]],
+    path: str,
+    sigma: float,
+    fragment_length: int,
+    fasta: str,
+) -> None:
+    """Write planted support intervals for interval-aware broad evaluation."""
+    chrom_lengths = {
+        chrom_id.split()[0]: len(seq)
+        for chrom_id, seq in lib.read_fasta(fasta)
+    }
+    half_width = max(int(round(3 * sigma)), fragment_length // 2)
+    peak_idx = 1
+    with open(path, 'w') as fh:
+        for chrom_id, centers in planted_peaks.items():
+            chrom = chrom_id.split()[0]
+            chrom_length = chrom_lengths.get(chrom, 0)
+            for center in centers:
+                start = max(int(center) - half_width, 0)
+                end = min(int(center) + half_width + 1, chrom_length)
+                fh.write(f"{chrom}\t{start}\t{end}\tpeak_interval_{peak_idx}\n")
+                peak_idx += 1
+
 def sample_genome(
     fasta: str,
     genome_pmfs: Dict[str, List[float]],
@@ -364,7 +395,7 @@ def sample_genome(
 
     chrom_bias = {}
     seqs = {}
-    read_rng = np.random.default_rng(seed)
+    read_rng = np.random.default_rng(resolve_component_seed(read_seed, seed))
     total_bp = 0
     for chrom_id, seq in lib.read_fasta(fasta):
         seqs[chrom_id] = seq
@@ -471,7 +502,13 @@ if fasta:
     if planted_peaks_bed:
         ensure_parent_dir(planted_peaks_bed)
         write_planted_peaks_bed(planted_peaks, planted_peaks_bed)
-
-
-
+    if planted_peak_intervals_bed:
+        ensure_parent_dir(planted_peak_intervals_bed)
+        write_planted_peak_intervals_bed(
+            planted_peaks,
+            planted_peak_intervals_bed,
+            tf_sigma,
+            k,
+            fasta,
+        )
 
