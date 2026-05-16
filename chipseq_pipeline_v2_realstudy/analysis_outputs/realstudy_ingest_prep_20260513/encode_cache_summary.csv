@@ -1,0 +1,4 @@
+study_id,accession,control_accession,experiment_json_cached,control_json_cached
+encode_skn1_celegans_l1,ENCSR012BJM,ENCSR748QRA,False,False
+encode_mouse_h3k27me3_midbrain_e12_5,ENCSR104PWP,ENCSR415FCU,True,True
+encode_mouse_h3k36me3_neural_tube_e13_5,ENCSR107SLP,ENCSR295GGT,True,True

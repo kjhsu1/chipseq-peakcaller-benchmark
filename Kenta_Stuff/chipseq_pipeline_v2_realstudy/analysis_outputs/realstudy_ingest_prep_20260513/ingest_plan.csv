@@ -1,5 +1,0 @@
-study_id,role,accession,file_format,assembly,local_path,remote_url,needs_alignment,selection_status,selection_reason,download_status,ingest_mode
-encode_skn1_celegans_l1,treatment_rep1,ENCFF775SIN,bam,ce11,,https://www.encodeproject.org/files/ENCFF775SIN/,false,selected,official ENCODE filtered alignment accession already known,not_started,download_processed_bam
-encode_skn1_celegans_l1,treatment_rep2,ENCFF927CRC,bam,ce11,,https://www.encodeproject.org/files/ENCFF927CRC/,false,selected,official ENCODE filtered alignment accession already known,not_started,download_processed_bam
-encode_skn1_celegans_l1,control_pooled,ENCFF904DXM,bam,ce11,,https://www.encodeproject.org/files/ENCFF904DXM/,false,selected,official ENCODE pooled input accession already known,not_started,download_processed_bam
-plos_li_2021_celegans_repressive_marks,treatment_unknown,PRJNA699886,unknown,unknown,,,unknown,pending_external_fetch,requires live NCBI metadata lookup,not_started,resolve_metadata_first

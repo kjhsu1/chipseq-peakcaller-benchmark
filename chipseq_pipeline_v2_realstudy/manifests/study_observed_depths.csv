@@ -1,0 +1,3 @@
+study_id,observed_treatment_depth,observed_control_depth,assembly,macs2_mode
+encode_skn1_celegans_l1,10,4,ce11,narrow
+geo_gse67028_celegans_h3k9me2_adult,10,4,ce11,broad

@@ -1,0 +1,62 @@
+# Synchronized study selection mirror for the controlled and realstudy tracks.
+studies:
+  - study_id: encode_skn1_celegans_l1
+    source: ENCODE
+    accession: ENCSR012BJM
+    control_accession: ENCSR748QRA
+    signal_class: narrow
+    has_treatment: true
+    has_control: true
+    processed_bam_available: true
+    usable_for_realism_scorecard: true
+    usable_for_realstudy_simulation: true
+    selection_status: selected
+    selection_reason: local ENCODE rebuild metadata and BAM accessions already captured
+  - study_id: plos_li_2021_celegans_repressive_marks
+    source: BioProject
+    accession: PRJNA699886
+    control_accession: ""
+    signal_class: broad
+    has_treatment: true
+    has_control: unknown
+    processed_bam_available: unknown
+    usable_for_realism_scorecard: false
+    usable_for_realstudy_simulation: false
+    selection_status: deferred_replaced
+    selection_reason: biologically relevant but operationally messy; replaced by cleaner worm broad-mark study for the main prototype
+  - study_id: geo_gse67028_celegans_h3k9me2_adult
+    source: GEO
+    accession: GSE67028
+    control_accession: ""
+    signal_class: broad
+    has_treatment: true
+    has_control: true
+    processed_bam_available: false
+    usable_for_realism_scorecard: true
+    usable_for_realstudy_simulation: true
+    selection_status: selected
+    selection_reason: cleaner worm broad-mark choice with explicit input control; primary subset uses fer-1 treatment replicates plus one shared input run
+  - study_id: encode_mouse_h3k27me3_midbrain_e12_5
+    source: ENCODE
+    accession: ENCSR104PWP
+    control_accession: ENCSR415FCU
+    signal_class: broad
+    has_treatment: true
+    has_control: true
+    processed_bam_available: true
+    usable_for_realism_scorecard: true
+    usable_for_realstudy_simulation: true
+    selection_status: fallback
+    selection_reason: live ENCODE metadata resolved; broad fallback ready if worm primary remains blocked
+  - study_id: encode_mouse_h3k36me3_neural_tube_e13_5
+    source: ENCODE
+    accession: ENCSR107SLP
+    control_accession: ENCSR295GGT
+    signal_class: broad
+    has_treatment: true
+    has_control: true
+    processed_bam_available: true
+    usable_for_realism_scorecard: true
+    usable_for_realstudy_simulation: true
+    selection_status: fallback
+    selection_reason: live ENCODE metadata resolved; broad fallback ready if worm primary remains blocked

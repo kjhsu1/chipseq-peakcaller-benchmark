@@ -1,7 +1,0 @@
-track type=wiggle_0 name=random_genome_1_cov_100_reads_sorted
-variableStep chrom=chr1 span=200
-1	918367.35
-variableStep chrom=chr2 span=200
-1	2040816.33
-variableStep chrom=chr3 span=200
-1	2040816.33

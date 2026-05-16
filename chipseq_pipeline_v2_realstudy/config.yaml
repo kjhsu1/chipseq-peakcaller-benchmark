@@ -1,0 +1,45 @@
+study_ids:
+  - encode_skn1_celegans_l1
+  - geo_gse67028_celegans_h3k9me2_adult
+
+study_depths_csv: "manifests/study_observed_depths.csv"
+
+coverage_treat:
+  - 5
+  - 10
+  - 20
+
+coverage_ctrl:
+  - 0.5
+  - 1
+  - 2
+  - 4
+  - 8
+  - 12
+  - 16
+  - 24
+
+seed:
+  - 11
+  - 23
+  - 37
+
+fragment_length:
+  - 150
+
+read_length:
+  - 38
+
+aligners:
+  - bowtie2
+
+peakcaller_list:
+  - macs2
+
+macs2_mode:
+  - narrow
+  - broad
+
+enable_alignment_peakcalling_targets: false
+enable_ingest_peakcalling_targets: false
+params_table: "metadata/prototype_run_table.csv"

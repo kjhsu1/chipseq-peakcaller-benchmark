@@ -1,6 +1,6 @@
 # ChIP-seq Simulation and Benchmarking Framework
 
-> Project Note: This work was originally initiated as a collaborative effort involving three members of the Korf Lab. However, the comprehensive design, implementation, and refinement of the framework presented here are the results of my individual development. The contents of Kenta_Stuff/chipseq_pipeline_v2 represent the primary, up to date workflow and the culmination of my independent research and engineering effort.
+> Project Note: This work was originally initiated as a collaborative effort involving three members of the Korf Lab. However, the comprehensive design, implementation, and refinement of the framework presented here are the results of my individual development. The contents of `chipseq_pipeline_v2` represent the primary, up to date workflow and the culmination of my independent research and engineering effort.
 > 
 
 ## Introduction
@@ -11,7 +11,7 @@ By utilizing a simulation program built on hierarchical modeling of key biases (
 
 ## Workflow Architecture
 
-![DAG diagram](Kenta_Stuff/chipseq_pipeline_v2/dag.png)
+![DAG diagram](chipseq_pipeline_v2/dag.png)
 
 The pipeline is orchestrated using Snakemake to provide a modular and reproducible environment for high-performance computing. The workflow manages data flow through the following stages:
 
@@ -76,7 +76,7 @@ Bash
 ```
 # Clone the repository
 git clone <repo_url>
-cd Kenta_Stuff/chipseq_pipeline
+cd chipseq_pipeline_v2
 ```
 
 **Execution**
