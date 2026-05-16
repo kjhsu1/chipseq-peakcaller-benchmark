@@ -1,15 +1,12 @@
-# old stuff
-chipseq_pipeline/
-snakemake_stuff/
-
-# genome idxes are too large
-for_testing_chipseq_pipeline/data/indexes/
-
-# the results of snakemake workflow
+# local workflow outputs
 results/
 
-# pycache
-__pycache__
+# caches
+__pycache__/
+.pytest_cache/
 
-# realstudy downloads stay local
+# local realstudy downloads stay local
 chipseq_pipeline_v2_realstudy/data/raw/
+
+# legacy testing indexes are large and local-only
+archive/legacy_testing/for_testing_chipseq_pipeline/data/indexes/

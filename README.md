@@ -20,6 +20,30 @@ The pipeline is orchestrated using Snakemake to provide a modular and reproducib
 - **Peak Calling (peakcalling.smk):** Standard bioinformatics tools, including MACS2 and EPIC2, are executed to identify regions of enrichment.
 - **Evaluation (analysis.smk):** This module compares the called peaks against the known simulation truth to generate performance metrics such as precision and recall. (in progress)
 
+## Repository Layout
+
+The active benchmark code lives at the repo root:
+
+- `chipseq_pipeline_v2/`
+- `chipseq_pipeline_v2_realstudy/`
+- `snakemake_stuff/`
+
+Environment definitions are bundled under:
+
+- `environments/environment.yml`
+- `environments/environment_for_HPC.yml`
+- `environments/environment_for_M1_mac.yml`
+
+Historical material has been re-archived under `archive/` and is not part of
+the active benchmark workflow:
+
+- `archive/legacy_pipeline/`
+- `archive/legacy_testing/`
+- `archive/legacy_scripts/`
+- `archive/legacy_data/`
+- `archive/legacy_indexes/`
+- `archive/legacy_shared/`
+
 ## Modeling
 
 The simulation logic treats the genome as a discrete probability landscape. The framework uses a hierarchical approach to build a Probability Mass Function (PMF) by stacking biological and technical variables. This process is implemented using the NumPy library for efficient vectorized calculations and the SciPy library for statistical distribution modeling.
@@ -76,6 +100,8 @@ Bash
 ```
 # Clone the repository
 git clone <repo_url>
+cd <repo_root>
+source snakemake_stuff/setup.sh
 cd chipseq_pipeline_v2
 ```
 
