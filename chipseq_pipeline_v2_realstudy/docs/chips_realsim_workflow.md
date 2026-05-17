@@ -136,3 +136,16 @@ HOME=/private/tmp/chipseq_snakemake_home snakemake -s Snakefile.py \
   results_chips/geo_gse67028_celegans_h3k9me2_adult_t0p001_c0p001_s11_fl150_rl38_albowtie2_pcmacs2_mbroad/con/reads_R1.fastq \
   results_chips/geo_gse67028_celegans_h3k9me2_adult_t0p001_c0p001_s11_fl150_rl38_albowtie2_pcmacs2_mbroad/con/reads_R2.fastq
 ```
+## Ontology Downstream Analysis
+
+Set `enable_chips_ontology_targets=true` to extend the ChIPs real-study DAG through downstream ontology analysis. The ontology branch scores each simulated ChIPs run against the real-study template peak BED that was used for `chips simreads -t bed`, classifies each template region with `scripts/classify_regions.py`, combines all classified tables, and writes aggregate summaries under `analysis_outputs/chips_ontology/summary/`.
+
+This is an empirical truth-template recovery analysis. ChIPs provides learned simulation from real ChIP-seq signal and can generate both treatment-like and whole-cell-extract control reads, but the workflow does not assume ChIPs exposes a closed-form intrinsic PMF for each parameter set.
+
+For cluster validation at the 128-core/2TB scale, use:
+
+```bash
+slurm/submit_chips_realsim_ontology_128cpu_2tb.sh
+```
+
+The submission script follows the latest successful cluster pattern: copy the pipeline to a per-job work directory, remove Python bytecode/Snakemake state, symlink high-volume outputs into the archived result directory, then run Snakemake in the `background_project` Conda environment.

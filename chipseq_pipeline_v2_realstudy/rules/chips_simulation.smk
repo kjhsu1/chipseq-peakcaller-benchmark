@@ -116,6 +116,7 @@ rule chips_simreads_treat:
     output:
         r1="results_chips/{run_id}/treat/reads_R1.fastq",
         r2="results_chips/{run_id}/treat/reads_R2.fastq",
+    threads: lambda wc: int(chips_cfg("threads", 4))
     params:
         binary=lambda wc: chips_cfg("binary", "chips"),
         score_col=lambda wc: chips_cfg("peak_score_column", 4),
@@ -124,7 +125,6 @@ rule chips_simreads_treat:
         numcopies=lambda wc: chips_numcopies(find_row(wc.run_id)),
         readlen=lambda wc: int(find_row(wc.run_id).get("read_length", 38)),
         seed=lambda wc: chips_seed(find_row(wc.run_id), "treat"),
-        threads=lambda wc: int(chips_cfg("threads", 4)),
     shell:
         r"""
         mkdir -p results_chips/{wildcards.run_id}/treat
@@ -140,7 +140,7 @@ rule chips_simreads_treat:
           --readlen {params.readlen} \
           --paired \
           --seed {params.seed} \
-          --thread {params.threads}
+          --thread {threads}
         mv {params.outprefix}_1.fastq {output.r1}
         mv {params.outprefix}_2.fastq {output.r2}
         """
@@ -152,6 +152,7 @@ rule chips_simreads_control:
     output:
         r1="results_chips/{run_id}/con/reads_R1.fastq",
         r2="results_chips/{run_id}/con/reads_R2.fastq",
+    threads: lambda wc: int(chips_cfg("threads", 4))
     params:
         binary=lambda wc: chips_cfg("binary", "chips"),
         outprefix=lambda wc: f"results_chips/{wc.run_id}/con/chips_control",
@@ -159,7 +160,6 @@ rule chips_simreads_control:
         numcopies=lambda wc: chips_numcopies(find_row(wc.run_id)),
         readlen=lambda wc: int(find_row(wc.run_id).get("read_length", 38)),
         seed=lambda wc: chips_seed(find_row(wc.run_id), "con"),
-        threads=lambda wc: int(chips_cfg("threads", 4)),
     shell:
         r"""
         mkdir -p results_chips/{wildcards.run_id}/con
@@ -172,7 +172,7 @@ rule chips_simreads_control:
           --readlen {params.readlen} \
           --paired \
           --seed {params.seed} \
-          --thread {params.threads}
+          --thread {threads}
         mv {params.outprefix}_1.fastq {output.r1}
         mv {params.outprefix}_2.fastq {output.r2}
         """
