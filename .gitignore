@@ -4,9 +4,18 @@ results/
 # caches
 __pycache__/
 .pytest_cache/
+chipseq_pipeline_v2_realstudy/.snakemake/
 
 # local realstudy downloads stay local
 chipseq_pipeline_v2_realstudy/data/raw/
+chipseq_pipeline_v2_realstudy/data/aligned/
+chipseq_pipeline_v2_realstudy/data/local/
+chipseq_pipeline_v2_realstudy/data/local_smoke/
+chipseq_pipeline_v2_realstudy/results_chips/
+chipseq_pipeline_v2_realstudy/analysis_outputs/chips_models/
+chipseq_pipeline_v2_realstudy/analysis_outputs/realstudy_bams/
+chipseq_pipeline_v2_realstudy/analysis_outputs/realstudy_ingest_prep/
+chipseq_pipeline_v2_realstudy/analysis_outputs/realstudy_peakcalls/
 
 # legacy testing indexes are large and local-only
 archive/legacy_testing/for_testing_chipseq_pipeline/data/indexes/

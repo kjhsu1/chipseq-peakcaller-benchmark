@@ -47,10 +47,10 @@ def chips_model_targets():
 
 
 def chips_treatment_bam(wc):
-    roles = selected_roles(wc.study_id, "treatment_")
-    if not roles:
+    rows = selected_rows_for_prefix(wc.study_id, "treatment_")
+    if not rows:
         raise ValueError(f"No treatment role available for ChIPs learn: {wc.study_id}")
-    return f"data/aligned/{wc.study_id}/{roles[0]}/aligned.sorted.bam"
+    return merged_study_bam(wc.study_id, "treatment")
 
 
 def chips_model_for_run(wc):
@@ -59,13 +59,12 @@ def chips_model_for_run(wc):
 
 def chips_reference_for_run(wc):
     assembly = find_row(wc.run_id).get("assembly", "unknown") or "unknown"
-    references = chips_cfg("reference_fasta_by_assembly", {})
-    return references.get(assembly, f"references/{assembly}/genome.fa")
+    return reference_fasta_for_assembly(assembly)
 
 
 def chips_numreads(row, cond):
     assembly = row.get("assembly", "unknown") or "unknown"
-    genome_size = float(chips_cfg("genome_size_by_assembly", {}).get(assembly, 1000000))
+    genome_size = float(genome_size_for_assembly(assembly))
     coverage = float(row["coverage_treat"] if cond == "treat" else row["coverage_ctrl"])
     fragment_length = float(row.get("fragment_length", 150))
     return max(1, int(round((coverage * genome_size) / fragment_length)))
@@ -85,8 +84,7 @@ def chips_seed(row, cond):
 
 def chips_bowtie2_index(wc):
     assembly = find_row(wc.run_id).get("assembly", "unknown") or "unknown"
-    indexes = chips_cfg("bowtie2_index_by_assembly", {})
-    return indexes.get(assembly, f"indexes/{assembly}/bowtie2_index")
+    return bowtie2_index_for_assembly(assembly)
 
 
 rule chips_learn_model:
@@ -206,7 +204,7 @@ rule call_peaks_macs2_chips:
     output:
         bed="results_chips/{run_id}/peaks/macs2/{run_id}_peaks.bed",
     params:
-        gsize=lambda wc: "1.0e8",
+        gsize=lambda wc: genome_size_for_assembly(find_row(wc.run_id).get("assembly", "unknown")),
         mode=lambda wc: find_row(wc.run_id).get("macs2_mode", "narrow"),
         mode_flag=lambda wc: "--broad" if find_row(wc.run_id).get("macs2_mode", "narrow") == "broad" else "",
         outdir=lambda wc: f"results_chips/{wc.run_id}/peaks/macs2",

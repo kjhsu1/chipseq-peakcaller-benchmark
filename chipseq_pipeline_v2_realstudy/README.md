@@ -25,9 +25,25 @@ Key docs:
 
 - `docs/chips_realsim_workflow.md`
 
-Blocker boundary:
+Local and cluster execution:
 
-- local Mac validation stops before full ChIPs/Snakemake execution if those
-  tools are not installed locally
+- local Mac validation now supports tests, full Snakemake dry-run shape for the
+  ChIPs path, and a tiny one-rule ChIPs WCE/control smoke run
+- the local `background_project` environment has been validated with ChIPs
+  `2.4`
+- full local execution is available through `run_chips_realsim_local.sh` once
+  the real-study FASTQs/BAMs plus full reference/index assets are staged locally
 - full ChIPs execution should run on the cluster through
   `slurm/submit_chips_realsim.sh`
+
+Local dry-run:
+
+```bash
+./run_chips_realsim_local.sh
+```
+
+Local full run after staging assets:
+
+```bash
+MODE=run CORES=4 ./run_chips_realsim_local.sh
+```

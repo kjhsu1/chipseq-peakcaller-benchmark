@@ -55,7 +55,7 @@ chips:
   bowtie2_index_by_assembly:
     ce11: "indexes/ce11/bowtie2_index"
     mm10: "indexes/mm10/bowtie2_index"
-  peak_score_column: 4
+  peak_score_column: 5
   numcopies_histone: 25
   numcopies_tf: 1000
   threads: 4

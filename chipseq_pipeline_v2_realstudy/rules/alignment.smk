@@ -17,15 +17,19 @@ def ingest_fastq_align_all():
     return outs
 
 
-def ingest_fastq_input(wc):
+def ingest_fastq_download_marker(wc):
+    return f"analysis_outputs/realstudy_ingest_prep/download_markers/{wc.study_id}/{wc.role}.done"
+
+
+def ingest_fastq_path(wc):
     row = find_manifest_row(wc.study_id, wc.role)
-    return row["local_path"]
+    return manifest_file_path(row)
 
 
 def ingest_fastq_index(wc):
     row = find_manifest_row(wc.study_id, wc.role)
     assembly = row.get("assembly", "unknown") or "unknown"
-    return f"indexes/{assembly}/bowtie2_index"
+    return bowtie2_index_for_assembly(assembly)
 
 
 rule align_bowtie2_realstudy:
@@ -37,7 +41,7 @@ rule align_bowtie2_realstudy:
         bai="results/{run_id}/bowtie2/{cond}/aligned.sorted.bam.bai",
     threads: 4
     params:
-        index=lambda wc: f"indexes/{find_row(wc.run_id).get('assembly', 'unknown')}/bowtie2_index"
+        index=lambda wc: bowtie2_index_for_assembly(find_row(wc.run_id).get("assembly", "unknown"))
     shell:
         r"""
         bowtie2 -p {threads} -f -x {params.index} -1 {input.r1} -2 {input.r2} \
@@ -49,16 +53,17 @@ rule align_bowtie2_realstudy:
 
 rule align_downloaded_fastq_realstudy:
     input:
-        fastq=ingest_fastq_input
+        downloaded=ingest_fastq_download_marker
     output:
         bam="data/aligned/{study_id}/{role}/aligned.sorted.bam",
         bai="data/aligned/{study_id}/{role}/aligned.sorted.bam.bai",
     threads: 4
     params:
-        index=ingest_fastq_index
+        index=ingest_fastq_index,
+        fastq=ingest_fastq_path
     shell:
         r"""
-        bowtie2 -p {threads} -x {params.index} -U {input.fastq} \
+        bowtie2 -p {threads} -x {params.index} -U {params.fastq} \
           | samtools view -b - \
           | samtools sort -@ {threads} -o {output.bam}
         samtools index {output.bam}
