@@ -1,5 +1,26 @@
 # Plan
 
+## ChIPs Ontology Analysis and Cluster Sweep Wave
+
+1. Inspect current ChIPs realstudy workflow, ontology helper scripts, and latest
+   successful Slurm submission patterns. Done.
+2. Before implementation, write a scientific validity report that evaluates the
+   experimental method statistically, logically, and biologically, with sources.
+   Done.
+3. Use the report to adjust the experimental plan if needed, especially around
+   what ChIPs can and cannot provide as ground truth. Done: the downstream
+   analysis is framed as empirical truth-template recovery rather than exact
+   intrinsic-PMF recovery.
+4. Add an ontology downstream step to the realstudy ChIPs Snakemake workflow.
+   Done.
+5. Add dry-run-testable targets for ontology outputs after ChIPs MACS2 peak
+   calls. Done.
+6. Add 128-core, 2TB-RAM Slurm and shell submission scripts for the cluster,
+   matching the latest successful sweep script structure as closely as possible.
+   Done.
+7. Validate with compile checks, tests, and Snakemake dry-runs, then record
+   proof and limitations. Done.
+
 ## ChIPs Realstudy Bug-Fix Wave
 
 1. Reproduce and document the current ChIPs realstudy failure points without

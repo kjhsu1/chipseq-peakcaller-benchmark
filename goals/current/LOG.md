@@ -103,6 +103,74 @@
 
 # Log
 
+## ChIPs Ontology Analysis and Cluster Sweep Wave
+
+- Started new `/goal` wave additively per user request; previous `/goals`
+  sections are preserved.
+- Created isolated worktree and branch:
+  `.codex_worktrees/chips-ontology-analysis` on
+  `codex/chips-ontology-analysis`, based on current `main`.
+- Confirmed current realstudy ChIPs rules include:
+  `chips_learn_model`, `chips_simreads_treat`, `chips_simreads_control`,
+  `align_bowtie2_chips`, and `call_peaks_macs2_chips`.
+- Confirmed ChIPs treatment simulation uses `chips simreads -t bed` with a
+  learned model and real peak BED, while control simulation uses
+  `chips simreads -t wce`.
+- Confirmed ontology scripts already exist as standalone tooling:
+  `classify_regions.py`, `ontology_lib.py`, and
+  `evaluate_by_region_ontology.py`, but they are not wired into the ChIPs
+  Snakemake target graph.
+- Confirmed current genome FASTA and Bowtie2 index staging/building are
+  prerequisite assets, not Snakemake-built workflow steps.
+- Inspected latest successful cluster script patterns, especially
+  `chipseq_pipeline_v2/slurm/balanced_tfclean_288_publicgrp_low_128cpu_singlejob.sbatch`
+  and `submit_balanced_tfclean_288_series_128cpu.sh`, plus current realstudy
+  ChIPs Slurm assets.
+- Scientific validity report must be written before implementation and should
+  clarify that ChIPs provides realistic simulated reads and input peak
+  templates/model parameters, not a closed-form intrinsic PMF.
+- Wrote `chipseq_pipeline_v2_realstudy/docs/chips_ontology_scientific_validity.md`
+  before workflow implementation. The report concludes the valid downstream
+  analysis is empirical template-region recovery: compare final simulated
+  MACS2 calls against the real-study peak BED used as the ChIPs treatment
+  template, then summarize recovery by region ontology class and control depth.
+- Implemented ontology DAG wiring in
+  `chipseq_pipeline_v2_realstudy/rules/ontology_analysis.smk`. New stages:
+  score template-region recovery, classify regions with the existing ontology
+  helper, combine classified region tables, and evaluate aggregate summaries.
+- Added `scripts/score_chips_ontology_regions.py` to compute region-level
+  treatment/control read counts, binned background variability, enrichment,
+  peak-shape proxy metrics, and truth-template recovery labels.
+- Added `scripts/combine_csv_tables.py` for a small reusable table-combine
+  step instead of embedding brittle shell one-liners in Snakemake.
+- Added `enable_chips_ontology_targets` to `config.yaml` and included ontology
+  targets in `Snakefile.py` only when that switch is enabled, preserving the
+  old ChIPs workflow default behavior.
+- Updated ChIPs simread rules so Snakemake reserves the configured ChIPs thread
+  count for `chips simreads` instead of passing `--thread` as an untracked
+  parameter.
+- Added cluster launch assets:
+  `chipseq_pipeline_v2_realstudy/slurm/chips_realsim_ontology_128cpu_2tb.sbatch`
+  and `chipseq_pipeline_v2_realstudy/slurm/submit_chips_realsim_ontology_128cpu_2tb.sh`.
+  The sbatch script requests `128` CPUs and `2000G` RAM, copies the pipeline to
+  a per-job work directory, symlinks high-volume outputs into an archived
+  results directory, and runs Snakemake in `background_project`.
+- Updated `chipseq_pipeline_v2_realstudy/docs/chips_realsim_workflow.md` with
+  the ontology target switch, empirical truth-template caveat, and cluster
+  submit command.
+- Validation proof: `conda run -n background_project python -m py_compile`
+  passed for new and touched ontology scripts.
+- Validation proof: `conda run -n background_project pytest tests/test_ontology_helpers.py`
+  passed: `1 passed`.
+- Validation proof: full realstudy test suite passed with
+  `conda run -n background_project pytest tests`: `18 passed`.
+- Validation proof: ontology-enabled local dry-run passed with
+  `HOME=/private/tmp/chipseq_snakemake_home snakemake --dry-run --quiet -j 1
+  -s Snakefile.py --configfile config.yaml configs/chips_local_dryrun.yaml
+  --config enable_chips_ontology_targets=true`. The resulting DAG has `518`
+  jobs total, including `72` score jobs, `72` classify jobs, one combine job,
+  and one ontology evaluation job.
+
 ## ChIPs Realstudy Bug-Hunt Findings
 
 - Re-ran `chipseq_pipeline_v2_realstudy` tests in `background_project`:

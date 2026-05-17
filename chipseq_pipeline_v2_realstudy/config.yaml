@@ -43,6 +43,7 @@ macs2_mode:
 enable_alignment_peakcalling_targets: false
 enable_ingest_peakcalling_targets: false
 enable_chips_targets: false
+enable_chips_ontology_targets: false
 params_table: "metadata/prototype_run_table.csv"
 
 chips:
@@ -59,6 +60,8 @@ chips:
   numcopies_histone: 25
   numcopies_tf: 1000
   threads: 4
+  ontology:
+    peak_score_column: 5
   genome_size_by_assembly:
     ce11: 100286401
     ce11_1pct: 1000000

@@ -1,5 +1,22 @@
 # Progress
 
+## ChIPs Ontology Analysis and Cluster Sweep Wave
+
+- [x] New isolated branch/worktree created:
+  `codex/chips-ontology-analysis`.
+- [x] Existing `/goals` history preserved; new work is appended, not replacing
+  previous waves.
+- [x] Current ChIPs realstudy workflow inspected.
+- [x] Existing ontology helper scripts located.
+- [x] Latest successful 128-core Slurm sweep script patterns inspected.
+- [x] Scientific validity report written before implementation.
+- [x] Experimental plan adjusted from the report.
+- [x] Ontology downstream Snakemake step implemented.
+- [x] Ontology dry-run target passes.
+- [x] 128-core / 2TB-RAM Slurm script added.
+- [x] Matching shell submission script added.
+- [x] Compile/tests/dry-runs complete.
+
 ## ChIPs Realstudy Bug-Fix Wave
 
 - [x] Bug hunt completed on the ChIPs-based realstudy path.
