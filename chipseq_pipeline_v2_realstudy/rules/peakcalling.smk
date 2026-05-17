@@ -24,24 +24,36 @@ def selected_roles(study_id, prefix):
     return sorted(rows)
 
 
+def merged_study_bam(study_id, group):
+    return f"analysis_outputs/realstudy_bams/{study_id}/{group}.merged.bam"
+
+
+def merged_study_bam_dependencies(wc):
+    prefix = "treatment_" if wc.group == "treatment" else "control_"
+    rows = selected_rows_for_prefix(wc.study_id, prefix)
+    if not rows:
+        raise ValueError(f"No selected rows found for {wc.study_id} / {wc.group}")
+    deps = []
+    for row in rows:
+        if str(row.get("needs_alignment", "")).strip().lower() == "true":
+            deps.append(f"data/aligned/{row['study_id']}/{row['role']}/aligned.sorted.bam")
+        else:
+            deps.append(f"analysis_outputs/realstudy_ingest_prep/download_markers/{row['study_id']}/{row['role']}.done")
+    return deps
+
+
+def merged_study_bam_paths(wc):
+    prefix = "treatment_" if wc.group == "treatment" else "control_"
+    rows = selected_rows_for_prefix(wc.study_id, prefix)
+    if not rows:
+        raise ValueError(f"No selected rows found for {wc.study_id} / {wc.group}")
+    return [manifest_bam_path(row) for row in rows]
+
+
 def ingested_peak_inputs(wc):
-    treat_roles = selected_roles(wc.study_id, "treatment_")
-    ctrl_roles = selected_roles(wc.study_id, "control_")
-    if not treat_roles:
-        raise ValueError(f"No selected treatment roles found for {wc.study_id}")
-    if not ctrl_roles:
-        raise ValueError(f"No selected control roles found for {wc.study_id}")
     return {
-        "treat": expand(
-            "data/aligned/{study_id}/{role}/aligned.sorted.bam",
-            study_id=[wc.study_id] * len(treat_roles),
-            role=treat_roles,
-        ),
-        "ctrl": expand(
-            "data/aligned/{study_id}/{role}/aligned.sorted.bam",
-            study_id=[wc.study_id] * len(ctrl_roles),
-            role=ctrl_roles,
-        ),
+        "treat": merged_study_bam(wc.study_id, "treatment"),
+        "ctrl": merged_study_bam(wc.study_id, "control"),
     }
 
 
@@ -63,12 +75,31 @@ def ingested_peak_mode(wc):
     return "narrow"
 
 
+rule merge_selected_realstudy_bams:
+    input:
+        deps=merged_study_bam_dependencies
+    output:
+        bam="analysis_outputs/realstudy_bams/{study_id}/{group}.merged.bam",
+        bai="analysis_outputs/realstudy_bams/{study_id}/{group}.merged.bam.bai",
+    threads: 4
+    params:
+        bams=merged_study_bam_paths
+    shell:
+        r"""
+        mkdir -p analysis_outputs/realstudy_bams/{wildcards.study_id}
+        samtools merge -f -@ {threads} {output.bam}.unsorted.bam {params.bams}
+        samtools sort -@ {threads} -o {output.bam} {output.bam}.unsorted.bam
+        rm -f {output.bam}.unsorted.bam
+        samtools index {output.bam}
+        """
+
+
 rule call_peaks_macs2_realstudy:
     input: unpack(macs2_inputs)
     output:
         bed="results/{run_id}/peaks/macs2/{run_id}_peaks.bed"
     params:
-        gsize=lambda wc: "1.0e8",
+        gsize=lambda wc: genome_size_for_assembly(find_row(wc.run_id).get("assembly", "unknown")),
         mode=lambda wc: find_row(wc.run_id).get("macs2_mode", "narrow"),
         mode_flag=lambda wc: "--broad" if find_row(wc.run_id).get("macs2_mode", "narrow") == "broad" else "",
         outdir=lambda wc: f"results/{wc.run_id}/peaks/macs2"
@@ -94,7 +125,7 @@ rule call_peaks_macs2_ingested_realstudy:
     output:
         bed="analysis_outputs/realstudy_peakcalls/{study_id}/{study_id}_peaks.bed"
     params:
-        gsize=lambda wc: "1.0e8",
+        gsize=lambda wc: genome_size_for_assembly(study_assembly(wc.study_id)),
         mode=ingested_peak_mode,
         mode_flag=lambda wc: "--broad" if ingested_peak_mode(wc) == "broad" else "",
         outdir=lambda wc: f"analysis_outputs/realstudy_peakcalls/{wc.study_id}/macs2"

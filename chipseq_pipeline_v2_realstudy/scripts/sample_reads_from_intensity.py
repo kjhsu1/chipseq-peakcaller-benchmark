@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from scripts.realstudy_sampling_lib import build_run_id, control_sampling_label, sampling_label
+from scripts.realstudy_sampling_lib import build_run_table_rows, load_observed_depths
 
 
 """Functions"""
@@ -37,52 +37,21 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     """Write the prototype run table for coverage sweeps."""
     args = parse_args()
-    observed_by_study = {}
-    if args.study_depths_csv is not None:
-        observed_df = pd.read_csv(args.study_depths_csv)
-        for row in observed_df.to_dict(orient="records"):
-            observed_by_study[row["study_id"]] = row
-    rows = []
-    for study_id in args.study_ids:
-        observed = observed_by_study.get(
-            study_id,
-            {
-                "observed_treatment_depth": args.observed_treatment_depth,
-                "observed_control_depth": args.observed_control_depth,
-                "assembly": "",
-                "macs2_mode": "",
-            },
-        )
-        mode_axis = [observed["macs2_mode"]] if str(observed.get("macs2_mode", "")).strip() else args.macs2_mode
-        for cov_treat in args.coverage_treat:
-            for cov_ctrl in args.coverage_ctrl:
-                for seed in args.seed:
-                    for fragment_length in args.fragment_length:
-                        for read_length in args.read_length:
-                            for aligner in args.aligners:
-                                for peakcaller in args.peakcaller_list:
-                                    for macs2_mode in mode_axis:
-                                        rows.append(
-                                            {
-                                                "run_id": build_run_id(study_id, cov_treat, cov_ctrl, seed),
-                                                "study_id": study_id,
-                                                "coverage_treat": cov_treat,
-                                                "coverage_ctrl": cov_ctrl,
-                                                "seed": seed,
-                                                "fragment_length": fragment_length,
-                                                "read_length": read_length,
-                                                "aligner": aligner,
-                                                "peakcaller": peakcaller,
-                                                "macs2_mode": macs2_mode,
-                                                "assembly": observed.get("assembly", ""),
-                                                "sampling_label": sampling_label(
-                                                    cov_treat, float(observed["observed_treatment_depth"])
-                                                ),
-                                                "control_sampling_label": control_sampling_label(
-                                                    cov_ctrl, float(observed.get("observed_control_depth", 1.0))
-                                                ),
-                                            }
-                                        )
+    observed_by_study = load_observed_depths(args.study_depths_csv)
+    rows = build_run_table_rows(
+        study_ids=args.study_ids,
+        observed_by_study=observed_by_study,
+        coverage_treat=args.coverage_treat,
+        coverage_ctrl=args.coverage_ctrl,
+        seeds=args.seed,
+        fragment_lengths=args.fragment_length,
+        read_lengths=args.read_length,
+        aligners=args.aligners,
+        peakcallers=args.peakcaller_list,
+        macs2_modes=args.macs2_mode,
+        observed_treatment_depth=args.observed_treatment_depth,
+        observed_control_depth=args.observed_control_depth,
+    )
     df = pd.DataFrame(rows)
     args.output_csv.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(args.output_csv, index=False)

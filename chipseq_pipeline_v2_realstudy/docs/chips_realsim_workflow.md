@@ -41,6 +41,16 @@ paths such as `references/ce11/genome.fa`. The local dry-run override
 reference only to validate workflow shape on a Mac; it is not the production
 reference for scientific execution.
 
+For full local execution, stage assets under ignored local paths and use
+`configs/chips_local_full.yaml`:
+
+- `data/raw/geo_gse67028_celegans_h3k9me2_adult/SRR1917669.fastq.gz`
+- `data/raw/geo_gse67028_celegans_h3k9me2_adult/SRR1917670.fastq.gz`
+- `data/raw/geo_gse67028_celegans_h3k9me2_adult/SRR1917671.fastq.gz`
+- `data/local/references/ce11/genome.fa`
+- `data/local/references/ce11/genome.fa.fai`
+- `data/local/indexes/ce11/bowtie2/ce11.*.bt2`
+
 ## Outputs
 
 - `analysis_outputs/chips_models/{study_id}/{study_id}.json`
@@ -61,8 +71,48 @@ bash slurm/submit_chips_realsim.sh
 ```
 
 The Slurm wrapper enables `enable_chips_targets=true` at runtime. Local Mac
-validation should use Snakemake dry-runs and tests; full ChIPs execution is
-cluster-oriented.
+validation should use Snakemake dry-runs, tests, and the tiny ChIPs smoke config
+before attempting larger runs. The workflow shape now dry-runs locally,
+including ingest downloads, real-study BAM merging, ChIPs learning, simulated
+read generation, alignment, and MACS2 peak calling.
+
+Validated local pieces:
+
+- ChIPs `2.4` is available from `background_project` after source-build
+  installation.
+- `configs/chips_tiny_smoke.yaml` resolves one tiny run and can generate a WCE
+  control FASTQ pair without downloading real-study files.
+
+Full local execution still requires real Bowtie2 index files at the configured
+local paths and network access for any missing real-study downloads. Until those
+are present, full ChIPs execution remains cluster-oriented.
+
+## Local Launch
+
+Local execution uses the same Snakemake workflow, without Slurm:
+
+```bash
+./run_chips_realsim_local.sh
+```
+
+The local launcher defaults to `MODE=dry-run`, `CORES=4`, and:
+
+```text
+CONFIG_FILES="config.yaml configs/chips_local_full.yaml"
+```
+
+After staging the required local assets, run the same workflow locally with:
+
+```bash
+MODE=run CORES=4 ./run_chips_realsim_local.sh
+```
+
+To target a specific output instead of the full ChIPs target set:
+
+```bash
+TARGETS="results_chips/<run_id>/con/reads_R1.fastq results_chips/<run_id>/con/reads_R2.fastq" \
+  ./run_chips_realsim_local.sh
+```
 
 Local dry-run:
 
@@ -73,4 +123,16 @@ HOME=/private/tmp/chipseq_snakemake_home snakemake -s Snakefile.py \
   --configfile config.yaml configs/chips_local_dryrun.yaml \
   --config enable_chips_targets=true \
   --dry-run
+```
+
+Tiny local ChIPs smoke run:
+
+```bash
+eval "$(/opt/anaconda3/bin/conda shell.zsh hook)"
+conda activate background_project
+HOME=/private/tmp/chipseq_snakemake_home snakemake -s Snakefile.py \
+  --configfile config.yaml configs/chips_tiny_smoke.yaml \
+  --cores 1 \
+  results_chips/geo_gse67028_celegans_h3k9me2_adult_t0p001_c0p001_s11_fl150_rl38_albowtie2_pcmacs2_mbroad/con/reads_R1.fastq \
+  results_chips/geo_gse67028_celegans_h3k9me2_adult_t0p001_c0p001_s11_fl150_rl38_albowtie2_pcmacs2_mbroad/con/reads_R2.fastq
 ```

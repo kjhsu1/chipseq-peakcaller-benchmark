@@ -1,0 +1,36 @@
+# Local full-run override for the ChIPs realstudy workflow.
+#
+# This config is for running Snakemake directly on a local machine after the
+# real-study files and reference/index assets have been staged under
+# `chipseq_pipeline_v2_realstudy/data/`.
+
+reference_fasta_by_assembly:
+  ce11: "data/local/references/ce11/genome.fa"
+  mm10: "data/local/references/mm10/genome.fa"
+
+bowtie2_index_by_assembly:
+  ce11: "data/local/indexes/ce11/bowtie2/ce11"
+  mm10: "data/local/indexes/mm10/bowtie2/mm10"
+
+genome_size_by_assembly:
+  ce11: 100286401
+  mm10: 2652783500
+
+chips:
+  binary: "chips"
+  study_ids:
+    - encode_skn1_celegans_l1
+    - geo_gse67028_celegans_h3k9me2_adult
+  reference_fasta_by_assembly:
+    ce11: "data/local/references/ce11/genome.fa"
+    mm10: "data/local/references/mm10/genome.fa"
+  bowtie2_index_by_assembly:
+    ce11: "data/local/indexes/ce11/bowtie2/ce11"
+    mm10: "data/local/indexes/mm10/bowtie2/mm10"
+  genome_size_by_assembly:
+    ce11: 100286401
+    mm10: 2652783500
+  peak_score_column: 5
+  numcopies_histone: 25
+  numcopies_tf: 1000
+  threads: 4

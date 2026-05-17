@@ -1,5 +1,16 @@
+reference_fasta_by_assembly:
+  ce11: "../chipseq_pipeline_v2/data/genomes/ce11_1pct/ce11_1pct.fa"
+
+bowtie2_index_by_assembly:
+  ce11: "../chipseq_pipeline_v2/data/indexes/ce11_1pct/bowtie2_index/ce11_1pct"
+
+genome_size_by_assembly:
+  ce11: 1000000
+
 chips:
   reference_fasta_by_assembly:
     ce11: "../chipseq_pipeline_v2/data/genomes/ce11_1pct/ce11_1pct.fa"
   bowtie2_index_by_assembly:
     ce11: "../chipseq_pipeline_v2/data/indexes/ce11_1pct/bowtie2_index/ce11_1pct"
+  genome_size_by_assembly:
+    ce11: 1000000

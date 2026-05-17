@@ -1,7 +1,7 @@
 study_id,role,accession,file_format,assembly,local_path,remote_url,needs_alignment,selection_status,selection_reason
-encode_skn1_celegans_l1,treatment_rep1,ENCFF775SIN,bam,ce11,,https://www.encodeproject.org/files/ENCFF775SIN/,false,selected,official ENCODE filtered alignment accession already known
-encode_skn1_celegans_l1,treatment_rep2,ENCFF927CRC,bam,ce11,,https://www.encodeproject.org/files/ENCFF927CRC/,false,selected,official ENCODE filtered alignment accession already known
-encode_skn1_celegans_l1,control_pooled,ENCFF904DXM,bam,ce11,,https://www.encodeproject.org/files/ENCFF904DXM/,false,selected,official ENCODE pooled input accession already known
+encode_skn1_celegans_l1,treatment_rep1,ENCFF775SIN,bam,ce11,data/raw/encode_skn1_celegans_l1/ENCFF775SIN.bam,https://www.encodeproject.org/files/ENCFF775SIN/@@download/ENCFF775SIN.bam,false,selected,official ENCODE filtered alignment accession already known
+encode_skn1_celegans_l1,treatment_rep2,ENCFF927CRC,bam,ce11,data/raw/encode_skn1_celegans_l1/ENCFF927CRC.bam,https://www.encodeproject.org/files/ENCFF927CRC/@@download/ENCFF927CRC.bam,false,selected,official ENCODE filtered alignment accession already known
+encode_skn1_celegans_l1,control_pooled,ENCFF904DXM,bam,ce11,data/raw/encode_skn1_celegans_l1/ENCFF904DXM.bam,https://www.encodeproject.org/files/ENCFF904DXM/@@download/ENCFF904DXM.bam,false,selected,official ENCODE pooled input accession already known
 plos_li_2021_celegans_repressive_marks,treatment_unknown,PRJNA699886,unknown,unknown,,,unknown,pending_external_fetch,requires live NCBI metadata lookup
 geo_gse67028_celegans_h3k9me2_adult,treatment_rep1,SRR1917669,fastq,ce11,,https://ftp.sra.ebi.ac.uk/vol1/fastq/SRR191/009/SRR1917669/SRR1917669.fastq.gz,true,selected,GSM1636403 H3K9me2_ChIPseq fer-1 rep1 selected as clean broad treatment replicate
 geo_gse67028_celegans_h3k9me2_adult,treatment_rep2,SRR1917670,fastq,ce11,,https://ftp.sra.ebi.ac.uk/vol1/fastq/SRR191/000/SRR1917670/SRR1917670.fastq.gz,true,selected,GSM1636404 H3K9me2_ChIPseq fer-1 rep2 selected as clean broad treatment replicate

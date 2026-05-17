@@ -1,4 +1,197 @@
+## 2026-05-16 21:49 PDT - ChIPs Environment and Tiny Smoke Wave
+
+- New `/goal` objective: install/expose ChIPs in `background_project` and run
+  tight local validation/smoke checks for the realstudy ChIPs pipeline without
+  launching large sweeps.
+- Starting worktree: `/Users/kentahsu/Code/KorfLab/Background_Forked/.codex_worktrees/chips-realstudy-bugfix-wave`.
+- Starting branch: `codex/chips-realstudy-bugfix-wave`.
+- Confirmed `background_project` path: `/opt/anaconda3/envs/background_project`.
+- Finding: `chips` was not on `PATH` after activating `background_project`.
+- Finding: `/opt/anaconda3/envs/alignment/bin/chips` exists but is not a safe
+  substitute as called directly; it failed with `_chips: command not found`.
+- Decision: attempt a real install into `background_project` via Conda using
+  `conda-forge` and `bioconda`.
+- Conda install attempt failed because package `chips` is not available for the
+  active `osx-arm64` channels. Web/package check indicates Bioconda packaging is
+  not native for this Mac architecture.
+- Important naming trap: `/opt/anaconda3/envs/alignment/bin/chips` is an EMBOSS
+  wrapper, not the ChIPs ChIP-seq simulator. It should not be used for this
+  pipeline.
+- Cloned upstream ChIPs source from `https://github.com/gymreklab/chips` into
+  `/private/tmp/chips-source`.
+- Source build initially failed in vendored zlib `1.2.8` because modern macOS
+  SDK headers conflicted with zlib's old `TARGET_OS_MAC`/`fdopen` fallback.
+- Applied a temporary build-only patch in `/private/tmp/chips-source` to avoid
+  that old zlib fallback on `__APPLE__`, then rebuilt successfully.
+- Installed ChIPs into `/opt/anaconda3/envs/background_project/bin/chips`.
+- Validation: `conda activate background_project && chips --version` prints
+  `chips-2.4`.
+- Added `configs/chips_tiny_smoke.yaml` for a one-run local smoke with
+  `coverage_treat=0.001`, `coverage_ctrl=0.001`, `seed=11`, and ChIPs
+  `numcopies_histone=1`.
+- Kept local smoke data out of git via `.gitignore`:
+  `chipseq_pipeline_v2_realstudy/data/local_smoke/` and
+  `chipseq_pipeline_v2_realstudy/results_chips/`.
+- Copied the toy `ce11_1pct` FASTA into the realstudy local-smoke data folder
+  and indexed it there with `samtools faidx`, avoiding writes to the old
+  controlled pipeline.
+- Validation: `python -m py_compile scripts/*.py` passed in
+  `chipseq_pipeline_v2_realstudy`.
+- Validation: `pytest tests` passed in `chipseq_pipeline_v2_realstudy`:
+  `17 passed`.
+- First tiny Snakemake dry-run attempt failed only because this Snakemake
+  version lets `--quiet` consume target-like positional values. Reran without
+  `--quiet`.
+- Validation: tiny ChIPs dry-run resolved exactly one `chips_simreads_control`
+  job.
+- Validation: tiny ChIPs actual target completed exactly one
+  `chips_simreads_control` job and wrote paired control FASTQs.
+- Output proof: each smoke FASTQ has `28` lines, equal to `7` read pairs under
+  four-line FASTQ format.
+- Validation: default realstudy dry-run still passes after the smoke config and
+  ignore-rule additions: Snakemake reports nothing to do for the default
+  ingest-prep targets.
+- Updated local-runnability assessment: the ChIPs simulator itself is now
+  locally usable in `background_project`, and the realstudy pipeline can execute
+  a tiny ChIPs WCE/control rule locally. Full local execution is still not the
+  default path because it requires full real-study downloads and Bowtie2 index
+  assets; cluster execution remains the intended path for production sweeps.
+
+## 2026-05-16 - Local and Slurm ChIPs Execution Wave
+
+- New `/goal` objective: make the ChIPs realstudy Snakemake workflow explicitly
+  runnable in both local mode and cluster Slurm mode.
+- Current Slurm mode exists through `slurm/submit_chips_realsim.sh` and
+  `slurm/chips_realsim_singlejob.sbatch`.
+- Current local mode exists only as tests, dry-runs, and the tiny WCE/control
+  smoke target. There is not yet a clean full local launcher for staged assets.
+- Decision: add a minimal local config plus one shell launcher. This is worth
+  adding despite helper-script restraint because it gives a clear public
+  interface for local Snakemake execution without changing the workflow rules.
+- Added `configs/chips_local_full.yaml`, which points full local runs to staged
+  local paths under `data/local/` for references/indexes while preserving the
+  existing manifest-driven raw-data paths.
+- Added `run_chips_realsim_local.sh`.
+  - Default: `MODE=dry-run`.
+  - Full local run after staging assets: `MODE=run CORES=4 ./run_chips_realsim_local.sh`.
+  - Tiny/local target mode can be selected through `CONFIG_FILES` and `TARGETS`.
+- Added local preflight checks for `configs/chips_local_full.yaml` so missing
+  full-run assets produce a clear checklist before Snakemake starts.
+- Updated `.gitignore` so local full-run data under
+  `chipseq_pipeline_v2_realstudy/data/local/` stays out of git.
+- Updated `chipseq_pipeline_v2_realstudy/README.md` and
+  `docs/chips_realsim_workflow.md` with separate local dry-run, local full-run,
+  tiny smoke, and Slurm launch commands.
+- Validation: `python -m py_compile scripts/*.py` passed after the local launch
+  additions.
+- Validation: `pytest tests` passed after the local launch additions:
+  `17 passed`.
+- Validation: `bash -n run_chips_realsim_local.sh slurm/submit_chips_realsim.sh
+  slurm/chips_realsim_singlejob.sbatch` passed.
+- Validation: default local launcher now exits with code `3` and a clear
+  missing-asset checklist when full local assets are absent:
+  `data/local/references/ce11/genome.fa`,
+  `data/local/references/ce11/genome.fa.fai`, and
+  `data/local/indexes/ce11/bowtie2/ce11*.bt2`.
+- Validation: tiny smoke launcher dry-run using
+  `CONFIG_FILES='config.yaml configs/chips_tiny_smoke.yaml'` and explicit
+  control FASTQ targets passed; Snakemake reported the requested files are
+  present and up to date.
+- Validation: tiny smoke launcher `MODE=run` with the same explicit targets
+  also passed; Snakemake reported nothing to do because the previous smoke
+  outputs are already present.
+
 # Log
+
+## ChIPs Realstudy Bug-Hunt Findings
+
+- Re-ran `chipseq_pipeline_v2_realstudy` tests in `background_project`:
+  `15 passed`.
+- Re-ran the local ChIPs dry-run with
+  `--configfile config.yaml --configfile configs/chips_local_dryrun.yaml --config enable_chips_targets=true --dry-run`.
+- The dry-run fails with `MissingInputException` for
+  `data/raw/geo_gse67028_celegans_h3k9me2_adult/SRR1917669.fastq.gz`, showing
+  that the ingest alignment path expects the FASTQ file directly instead of a
+  workflow-produced output.
+- `rules/ingest_real_data.smk` currently downloads to a `.done` marker target,
+  but `rules/alignment.smk` requires the FASTQ path itself as input. This is a
+  real DAG bug, not just a missing local file.
+- Selected ENCODE BAM rows (`needs_alignment=false`) are still incompatible with
+  the current ChIPs learning and real-study peak-calling path shapes, because
+  those rules assume `data/aligned/{study_id}/{role}/aligned.sorted.bam` even
+  when the manifest source is a processed BAM download.
+- `Snakefile.py` loads `RUNS` and `DATA_MANIFEST` at parse time before rules can
+  rebuild `metadata/prototype_run_table.csv` and `metadata/data_manifest.csv`,
+  creating stale in-memory workflow state risk.
+- `configs/chips_local_dryrun.yaml` only overrides the ChIPs reference/index
+  lookup. It does not override the ingest alignment Bowtie2 index path in
+  `rules/alignment.smk`, so the local path story is inconsistent.
+- `background_project` currently has `snakemake`, `macs2`, `bowtie2`, and
+  `samtools`, but not `chips`, so even a logic-fixed workflow would still need
+  a local tool install before true local execution.
+- The local dry-run helper points to `../chipseq_pipeline_v2/data/genomes/...`,
+  but the corresponding Bowtie2 index files are not present under the expected
+  local path, reinforcing that the current local dry-run is only a partial
+  workflow-shape check.
+- The committed manifest says the selected GEO FASTQs are `downloaded` and
+  `local_exists=True`, but those FASTQ files are absent in this checkout. That
+  bookkeeping mismatch can mislead future runs.
+- `sample_reads_from_intensity.py` currently builds `run_id` from only study ID,
+  treatment depth, control depth, and seed. That is safe for the current narrow
+  axis set, but it will collide if more axes are added later.
+
+## Planned Repair Order
+
+1. Fix the ingest/download/alignment DAG break.
+2. Split FASTQ-ingest and processed-BAM study handling.
+3. Remove stale parse-time metadata assumptions.
+4. Unify local reference/index config wiring.
+5. Add assembly-aware MACS2 genome-size handling.
+6. Make ChIPs learning inputs match the replicate structure used to call the
+   real-study peak BED.
+7. Correct manifest bookkeeping and local-runnability documentation.
+8. Harden run IDs and re-verify the local ChIPs path.
+
+## ChIPs Realstudy Bug-Fix Implementation Notes
+
+- Reworked `Snakefile.py` so runtime `RUNS` and selected-manifest rows are built
+  from source config/manifests instead of trusting stale generated CSVs at parse
+  time.
+- Reworked the sampling helper layer so the run table builder lives in
+  `scripts/realstudy_sampling_lib.py`, and run IDs now include the full active
+  axis set (`fragment_length`, `read_length`, `aligner`, `peakcaller`,
+  `macs2_mode`) instead of only study/depth/seed.
+- Rewired real-study downloading so the download rule remains marker-based for
+  Snakemake compatibility, but alignments now depend on download markers while
+  consuming the explicit local FASTQ path written by the downloader.
+- Reworked real-study BAM routing so processed BAM studies and FASTQ studies no
+  longer share the same false `data/aligned/...` assumption.
+- Added merged treatment/control BAM outputs for selected real studies, so
+  MACS2 real-study peak calling and `chips learn` now use the same replicate
+  structure.
+- Unified local reference/index lookup through shared assembly helpers in
+  `Snakefile.py`, and updated the local dry-run config so the override is not
+  ChIPs-only anymore.
+- Replaced hard-coded MACS2 genome size with assembly-aware lookup.
+
+## New Validation Proof
+
+- `cd chipseq_pipeline_v2_realstudy && conda activate background_project && python -m py_compile scripts/*.py`
+  completed with exit code 0 after the bug-fix edits.
+- `cd chipseq_pipeline_v2_realstudy && conda activate background_project && pytest tests`
+  passed: `17 passed`.
+- `cd chipseq_pipeline_v2_realstudy && conda activate background_project && HOME=/private/tmp/chipseq_snakemake_home snakemake -s Snakefile.py --configfile config.yaml --configfile configs/chips_local_dryrun.yaml --config enable_chips_targets=true --dry-run --quiet`
+  passed. Updated dry-run DAG: `372` jobs total, including `3`
+  `download_realstudy_file` jobs, `3` downloaded FASTQ alignments, `2`
+  `merge_selected_realstudy_bams` jobs, `1` real-study MACS2 peak call, `1`
+  `chips_learn_model` job, `72` ChIPs treatment simulations, `72` ChIPs
+  control simulations, `144` simulated-read alignments, and `72` simulated
+  MACS2 peak calls.
+- `cd chipseq_pipeline_v2_realstudy && conda activate background_project && HOME=/private/tmp/chipseq_snakemake_home snakemake -s Snakefile.py --dry-run --quiet`
+  still passes for the default ingest-prep path with `2` jobs.
+- Local `chips` binary check still returns empty in `background_project`, so
+  the workflow is now locally dry-run clean but not yet locally executable
+  end-to-end without an additional tool install.
 
 ## Initial Context
 
