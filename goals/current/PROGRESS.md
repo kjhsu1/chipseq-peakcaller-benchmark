@@ -79,3 +79,20 @@ reference/index assets.
 - [x] Validated local launcher dry-run behavior.
 - [x] Rechecked tiny smoke execution or output.
 - [x] Logged final local and cluster run commands.
+
+## Cluster Resume Wave
+
+- [x] EPIC2 hilly peaks config completed on Slurm.
+- [x] EPIC2 hilly plateaus config completed on Slurm.
+- [x] EPIC2 hilly peaks metrics generated.
+- [x] EPIC2 hilly plateaus metrics generated.
+- [x] Six-config EPIC2 report README, attempt log, and per-config plots
+  generated.
+- [x] Realstudy failure root cause identified as package-import invocation in
+  `prepare_realstudy_ingest_plan`, separate from the later Snakemake cleanup
+  traceback.
+- [x] Realstudy Snakemake invocation patched and local tests/dry-run rerun.
+- [x] Realstudy ontology job resubmitted with the requested `64` CPUs, `50G`
+  RAM, `publicgrp/low`, and `2-00:00:00` walltime.
+- [ ] Realstudy resubmission finished successfully.
+- [ ] Realstudy ontology metrics and plots collected.

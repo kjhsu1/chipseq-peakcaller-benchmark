@@ -15,7 +15,7 @@ rule build_prototype_run_table:
         macs2_mode=lambda wc: " ".join(config["macs2_mode"])
     shell:
         """
-        python scripts/sample_reads_from_intensity.py \
+        python -m scripts.sample_reads_from_intensity \
           --study-ids {params.study_ids} \
           --study-depths-csv {params.study_depths_csv} \
           --observed-treatment-depth 10 \

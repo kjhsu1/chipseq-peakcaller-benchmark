@@ -91,9 +91,11 @@ def load_called_intervals(path: Path) -> Dict[str, List[Tuple[int, int]]]:
     intervals: Dict[str, List[Tuple[int, int]]] = {}
     with path.open("r", encoding="utf-8") as handle:
         for line in handle:
-            if not line.strip():
+            if not line.strip() or line.startswith("#"):
                 continue
             chrom, start, end, *_ = line.rstrip().split("\t")
+            if not start.isdigit() or not end.isdigit():
+                continue
             intervals.setdefault(chrom, []).append((int(start), int(end)))
     return intervals
 

@@ -23,7 +23,7 @@ DEST_ROOT="${DATA_ROOT}/chips_runs/chips_realsim_${RUN_TS}"
 LOG_ROOT="${DATA_ROOT}/logs"
 LOG_FILE="${LOG_ROOT}/chips_realsim_${RUN_TS}.log"
 
-mkdir -p "${DATA_ROOT}/slurm_jobs/${SLURM_JOB_ID}" "${JOB_ROOT}" "${DEST_ROOT}" "${LOG_ROOT}"
+mkdir -p "${DATA_ROOT}/slurm_jobs/${SLURM_JOB_ID}" "${JOB_ROOT}" "${DEST_ROOT}/results_chips" "${LOG_ROOT}"
 mkdir -p "/tmp/kjhsu_snakemake_cache/${SLURM_JOB_ID}"
 
 echo "[$(date)] START ChIPs realstudy workflow" | tee -a "${LOG_FILE}"

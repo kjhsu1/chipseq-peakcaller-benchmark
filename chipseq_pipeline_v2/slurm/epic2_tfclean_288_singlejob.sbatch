@@ -1,13 +1,13 @@
 #!/bin/bash
 #SBATCH --job-name=epic2_tfclean_288
 #SBATCH --account=publicgrp
-#SBATCH --partition=high
+#SBATCH --partition=low
 #SBATCH --output=/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/slurm_jobs/%j/%x.out
 #SBATCH --error=/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/slurm_jobs/%j/%x.err
 #SBATCH --chdir=/home/kjhsu/Code/Korflab/chipseq-peakcaller-benchmark/chipseq_pipeline_v2
-#SBATCH --cpus-per-task=8
-#SBATCH --mem=24G
-#SBATCH --time=4-00:00:00
+#SBATCH --cpus-per-task=64
+#SBATCH --mem=50G
+#SBATCH --time=2-00:00:00
 
 set -euo pipefail
 

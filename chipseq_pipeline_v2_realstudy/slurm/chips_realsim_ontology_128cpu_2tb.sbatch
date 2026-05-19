@@ -1,21 +1,21 @@
 #!/bin/bash
 #SBATCH --job-name=chips_ontology_128
 #SBATCH --account=publicgrp
-#SBATCH --partition=high
+#SBATCH --partition=low
 #SBATCH --output=/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2_realstudy/slurm_jobs/%j/%x.out
 #SBATCH --error=/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2_realstudy/slurm_jobs/%j/%x.err
 #SBATCH --chdir=/home/kjhsu/Code/Korflab/chipseq-peakcaller-benchmark/chipseq_pipeline_v2_realstudy
-#SBATCH --cpus-per-task=128
-#SBATCH --mem=2000G
-#SBATCH --time=4-00:00:00
+#SBATCH --cpus-per-task=64
+#SBATCH --mem=250G
+#SBATCH --time=2-00:00:00
 
 set -euo pipefail
 
 CONDA_BIN="${CONDA_BIN:-/cvmfs/hpc.ucdavis.edu/sw/conda/root/bin/conda}"
 ENV_PREFIX="${ENV_PREFIX:-/home/kjhsu/.conda/envs/background_project}"
-PIPE_SRC="${PIPE_SRC:-/home/kjhsu/Code/Korflab/chipseq-peakcaller-benchmark/chipseq_pipeline_v2_realstudy}"
+PIPE_SRC="${PIPE_SRC:-${SLURM_SUBMIT_DIR}}"
 DATA_ROOT="${DATA_ROOT:-/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2_realstudy}"
-CONFIG_REL="${CONFIG_REL:-config.yaml}"
+CONFIG_FILES="${CONFIG_FILES:-config.yaml configs/chips_cluster_full.yaml}"
 
 RUN_TS="$(date +%Y%m%d_%H%M%S)"
 JOB_ROOT="${DATA_ROOT}/work/${SLURM_JOB_ID}/pipeline"
@@ -30,7 +30,7 @@ mkdir -p "/tmp/kjhsu_snakemake_cache/${SLURM_JOB_ID}"
 echo "[$(date)] START ChIPs realstudy ontology workflow" | tee -a "${LOG_FILE}"
 echo "results=${DEST_ROOT}" | tee -a "${LOG_FILE}"
 echo "cpus=${SLURM_CPUS_PER_TASK}" | tee -a "${LOG_FILE}"
-echo "mem=${SLURM_MEM_PER_NODE:-2000G}" | tee -a "${LOG_FILE}"
+echo "mem=${SLURM_MEM_PER_NODE:-250G}" | tee -a "${LOG_FILE}"
 
 export XDG_CACHE_HOME="/tmp/kjhsu_snakemake_cache/${SLURM_JOB_ID}"
 export PYTHONDONTWRITEBYTECODE=1
@@ -44,11 +44,17 @@ ln -sfn "${DEST_ROOT}/analysis_outputs/chips_ontology" "${JOB_ROOT}/analysis_out
 
 cd "${JOB_ROOT}"
 
+read -r -a CONFIG_FILE_ARRAY <<< "${CONFIG_FILES}"
+SNAKEMAKE_CONFIG_ARGS=()
+for config_file in "${CONFIG_FILE_ARRAY[@]}"; do
+  SNAKEMAKE_CONFIG_ARGS+=(--configfile "${config_file}")
+done
+
 set +e
 "${CONDA_BIN}" run -p "${ENV_PREFIX}" snakemake \
   -j "${SLURM_CPUS_PER_TASK}" \
   -s Snakefile.py \
-  --configfile "${CONFIG_REL}" \
+  "${SNAKEMAKE_CONFIG_ARGS[@]}" \
   --config enable_chips_targets=true enable_chips_ontology_targets=true \
   --latency-wait 60 \
   --rerun-incomplete 2>&1 | tee -a "${LOG_FILE}"

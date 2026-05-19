@@ -77,7 +77,7 @@ rule classify_chips_ontology_regions:
         prefix=lambda wc: f"analysis_outputs/chips_ontology/{wc.run_id}/classified",
     shell:
         r"""
-        python scripts/classify_regions.py \
+        python -m scripts.classify_regions \
           --input-csv {input.csv} \
           --output-prefix {params.prefix}
         """

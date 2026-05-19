@@ -8,7 +8,7 @@ rule prepare_realstudy_ingest_plan:
         metadata="metadata/data_manifest.csv"
     shell:
         """
-        python scripts/fetch_real_study_data.py \
+        python -m scripts.fetch_real_study_data \
           --study-selection {input.selection} \
           --file-manifest {input.files} \
           --output-dir analysis_outputs/realstudy_ingest_prep
@@ -28,7 +28,7 @@ rule download_realstudy_file:
         output_path=download_target_path
     shell:
         """
-        python scripts/download_real_study_file.py \
+        python -m scripts.download_real_study_file \
           --manifest-csv {input.manifest} \
           --study-id {wildcards.study_id} \
           --role {wildcards.role} \

@@ -366,3 +366,119 @@
   `HOME=/private/tmp/chipseq_snakemake_home` is set.
 - Full EPIC2 and ChIPs execution remains cluster-side because it requires the
   complete bioinformatics toolchain and production references.
+
+## 2026-05-18 Overnight Result Check For 64 CPU / 50G Jobs
+
+- Live `squeue` no longer lists jobs `14193045`, `14193046`, or `14193047`.
+- EPIC2 hilly peaks job `14193045` completed successfully:
+  - Slurm state: `COMPLETED`, `ExitCode=0:0`
+  - ran on `publicgrp/low` with `64` cores and `50G`
+  - start/end: `2026-05-17T22:04:46` to `2026-05-17T23:10:05`
+  - elapsed: `01:05:19`
+  - max memory used: `8.97G`
+  - result root:
+    `/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/epic2_tfclean_realistic_peaks_hilly_narrow_integrated_288_20260517_220447`
+  - output counts: `288` EPIC2 `*_domains.bed`, `576` aligned BAMs
+- EPIC2 hilly plateaus job `14193046` completed successfully:
+  - Slurm state: `COMPLETED`, `ExitCode=0:0`
+  - ran on `publicgrp/low` with `64` cores and `50G`
+  - start/end: `2026-05-17T23:10:35` to `2026-05-18T00:18:51`
+  - elapsed: `01:08:16`
+  - max memory used: `8.83G`
+  - result root:
+    `/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/epic2_tfclean_realistic_plateaus_hilly_broad_integrated_288_20260517_231037`
+  - output counts: `288` EPIC2 `*_domains.bed`, `576` aligned BAMs
+- Realstudy ontology job `14193047` failed:
+  - Slurm state: `FAILED`, `ExitCode=1:0`
+  - ran on `publicgrp/low` with `64` cores and `50G`
+  - start/end: `2026-05-17T21:28:47` to `2026-05-17T23:42:25`
+  - elapsed: `02:13:38`
+  - max memory used: `50.00G`, exactly the reserved amount
+  - result root:
+    `/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2_realstudy/chips_runs/chips_realsim_ontology_128cpu_2tb_20260517_212849`
+  - marker: `RUN_FAILED`
+  - progress reached `278 of 1029 steps (27%) done`
+  - failure traceback ended with
+    `NotADirectoryError: [Errno 20] Not a directory: 'analysis_outputs/chips_ontology'`
+    during Snakemake cleanup, after an upstream job failure.
+  - resource signal: `Max Mem used = 50.00G`, so the 50G allocation was fully
+    consumed and likely too small for this realstudy shape.
+- Started EPIC2 metrics generation for the completed hilly-peaks config after
+  confirming both remaining EPIC2 output blocks exist.
+
+## 2026-05-18 Resume Follow-Up
+
+- Rechecked the failed realstudy job `14193047` in the persisted work directory:
+  `/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2_realstudy/work/14193047/pipeline`.
+- The first hard failure was not the final Snakemake cleanup traceback. The
+  upstream failed rule was `prepare_realstudy_ingest_plan`:
+  `ModuleNotFoundError: No module named 'scripts'` from
+  `python scripts/fetch_real_study_data.py`.
+- The cleanup traceback
+  `NotADirectoryError: [Errno 20] Not a directory: 'analysis_outputs/chips_ontology'`
+  is still recorded, but it happened after the upstream rule failure.
+- The resource signal remains important: job `14193047` used exactly `50.00G`
+  max memory, so a second failure may still require a larger RAM allocation.
+  For this resume, the requested `64` CPU / `50G` setting was preserved.
+- Patched realstudy package-style script invocations:
+  `python -m scripts.fetch_real_study_data`,
+  `python -m scripts.download_real_study_file`,
+  `python -m scripts.sample_reads_from_intensity`, and
+  `python -m scripts.classify_regions`.
+- Restored active cluster submission assets from the staged successful-submit
+  pattern:
+  `chipseq_pipeline_v2_realstudy/configs/chips_cluster_full.yaml`, staged-copy
+  submission in `slurm/submit_chips_realsim_ontology_128cpu_2tb.sh`, and the
+  active Slurm script defaults for `publicgrp/low`, `64` CPUs, `50G`, and
+  `2-00:00:00`.
+- Validation after patch:
+  `cd chipseq_pipeline_v2_realstudy && source ../snakemake_stuff/setup.sh && python -m py_compile scripts/*.py && pytest tests`
+  passed with `18 passed`.
+- Validation after patch:
+  `cd chipseq_pipeline_v2_realstudy && source ../snakemake_stuff/setup.sh && XDG_CACHE_HOME=/tmp/chipseq_snakemake_cache snakemake -s Snakefile.py --configfile config.yaml configs/chips_cluster_full.yaml --config enable_chips_targets=true enable_chips_ontology_targets=true --dry-run --quiet`
+  passed. DAG size: `1029` jobs.
+- Submitted patched realstudy ontology job `14200626`.
+  Slurm verification: `publicgrp/low`, `64` CPUs, `50G`, `2-00:00:00`, state
+  `PENDING` with reason `Priority` at submit check.
+- EPIC2 hilly peaks metrics completed at:
+  `/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/epic2_tfclean_realistic_peaks_hilly_narrow_integrated_288_20260517_220447/analysis_outputs/peak_pr_stats`.
+- EPIC2 hilly plateaus metrics completed at:
+  `/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/epic2_tfclean_realistic_plateaus_hilly_broad_integrated_288_20260517_231037/analysis_outputs/peak_pr_stats`.
+- Hilly plateaus counts-based summary shows F1 increasing with control depth
+  from `0.1512` at `0.5x` control to `0.3512` at `24x` control.
+- Built the EPIC2 six-config report root:
+  `/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2/archived_results/epic2_tfclean_six_config_report_20260518_1053`.
+  The report root contains `README.md` and `attempt_history.log`; per-config
+  plots and `data_info.md` were written into each config's
+  `analysis_outputs/peak_pr_stats` directory by the report builder.
+- Validation after EPIC2 metrics/report work:
+  `cd chipseq_pipeline_v2 && source ../snakemake_stuff/setup.sh && python -m py_compile scripts/*.py && pytest tests`
+  passed with `23 passed`.
+- At user direction, canceled pending realstudy job `14200626` and resubmitted
+  with the same `64` CPUs, `publicgrp/low`, and `2-00:00:00` walltime but
+  higher memory: `250G`.
+- New realstudy job: `14201143`.
+  Slurm verification shows `ReqTRES=cpu=64,mem=250G,node=1,billing=64`,
+  state `PENDING`, reason `Priority`.
+- New staged submission source:
+  `/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2_realstudy/submission_sources/chips_realsim_ontology_submit_20260518_110844`.
+
+## 2026-05-18 Realstudy 250G Failure Investigation
+
+- Realstudy job `14201143` failed after `01:30:36`, from
+  `2026-05-18T12:39:55` to `2026-05-18T14:10:31`.
+- This was not a RAM exhaustion failure. Slurm summary reports `250G`
+  reserved and `10.64G` max memory used.
+- The first workflow failure was `align_bowtie2_chips`, not the later
+  Snakemake cleanup traceback.
+- Root error from the run log:
+  `(ERR): "indexes/ce11/bowtie2_index" does not exist or is not a Bowtie 2 index`.
+- Follow-on pipe errors were:
+  `[main_samview] fail to read the header from "-"` and
+  `samtools sort: failed to read header from "-"`.
+- The active/staged path `indexes/ce11/bowtie2_index` is a symlink to the
+  directory `/quobyte/ikorfgrp/home/kjhsu/results/reference_assets/ce11/bowtie2`,
+  whose index files are named `ce11.1.bt2`, `ce11.2.bt2`, etc.
+- Bowtie2 `-x` needs the basename prefix, so the correct prefix is likely
+  `/quobyte/ikorfgrp/home/kjhsu/results/reference_assets/ce11/bowtie2/ce11`
+  or an equivalent repo-local symlink/prefix, not the directory symlink itself.

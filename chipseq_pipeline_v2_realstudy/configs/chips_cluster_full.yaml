@@ -1,0 +1,10 @@
+# Cluster full-run override for the ChIPs realstudy workflow.
+#
+# This keeps the production reference/index paths from `config.yaml` but expands
+# the ChIPs target matrix from the default single broad-mark study to the full
+# two-study prototype matrix used in the local full-run record.
+
+chips:
+  study_ids:
+    - encode_skn1_celegans_l1
+    - geo_gse67028_celegans_h3k9me2_adult
