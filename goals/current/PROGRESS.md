@@ -1,98 +1,47 @@
 # Progress
 
-## ChIPs Ontology Analysis and Cluster Sweep Wave
+## Realstudy Production Validation Wave
 
-- [x] New isolated branch/worktree created:
-  `codex/chips-ontology-analysis`.
-- [x] Existing `/goals` history preserved; new work is appended, not replacing
-  previous waves.
-- [x] Current ChIPs realstudy workflow inspected.
-- [x] Existing ontology helper scripts located.
-- [x] Latest successful 128-core Slurm sweep script patterns inspected.
-- [x] Scientific validity report written before implementation.
-- [x] Experimental plan adjusted from the report.
-- [x] Ontology downstream Snakemake step implemented.
-- [x] Ontology dry-run target passes.
-- [x] 128-core / 2TB-RAM Slurm script added.
-- [x] Matching shell submission script added.
-- [x] Compile/tests/dry-runs complete.
+- [x] New `/goal` objective loaded from `~/Downloads/prompt.txt`.
+- [x] Existing `/goals` history preserved instead of deleted.
+- [x] `GOAL.md` rewritten around the realstudy production objective.
+- [x] `PLAN.md` rewritten around the 11 production success criteria.
+- [x] Current realstudy workflow files re-inspected against the new objective.
+- [x] Exact production output paths re-confirmed from live workflow code.
+- [x] Latest realstudy cluster failure root cause re-confirmed in context of the
+  new objective.
+- [x] Production validation script added or upgraded.
+- [x] Runtime/resource capture implemented in the production path.
+- [x] Reproducibility packaging implemented in the production path.
+- [x] Required summary plot list finalized.
+- [x] Ontology class coverage validation implemented.
+- [x] Compile checks rerun under the new validation wave.
+- [x] Tests rerun under the new validation wave.
+- [x] Production Snakemake dry-run rerun under the new validation wave.
+- [x] Realstudy production launch path judged ready and launched on Slurm.
+- [x] Live cluster fetch failure diagnosed as external DNS/network access.
+- [x] Production ingest switched to pre-staged local BAM/FASTQ inputs.
 
-## ChIPs Realstudy Bug-Fix Wave
+## Live Production State
 
-- [x] Bug hunt completed on the ChIPs-based realstudy path.
-- [x] Local realstudy tests rerun and confirmed green: `17 passed`.
-- [x] Local ChIPs dry-run rechecked and confirmed broken at the ingest/alignment
-  handoff.
-- [x] Ingest download outputs connected to alignment inputs in the DAG.
-- [x] Processed-BAM and FASTQ alignment paths separated cleanly.
-- [x] Parse-time stale metadata loading removed or neutralized.
-- [x] Local reference/index override path unified across the workflow.
-- [x] Assembly-aware MACS2 genome-size handling added.
-- [x] ChIPs learn-model replicate/peak-input logic made internally consistent.
-- [x] Manifest bookkeeping corrected for actual local-file presence in runtime logic.
-- [x] Run ID scheme hardened against future parameter growth.
-- [x] Local dry-run upgraded from failing to passing for the ChIPs path.
-- [x] End-to-end local-runnability status re-evaluated and documented clearly.
+- [x] Production Slurm job submitted: `14516460`
+- [x] Production output root identified:
+  `/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2_realstudy/chips_runs/chips_realsim_ontology_128cpu_2tb_20260526_034056`
+- [ ] Production run completed successfully.
+- [ ] Final validation report generated.
+- [ ] Runtime/resource report generated.
+- [ ] Reproducibility package generated.
 
-- [x] Goal initialized.
-- [x] Current repo state inspected.
-- [x] Simulator literature/web pass completed.
-- [x] Low-utility PMF/visual helper scripts archived from active path.
-- [x] Controlled-sweep repair context documented.
-- [x] Simulator comparison and recommendation documented.
-- [x] Revised 11-step plan documented.
-- [x] ChIPs workflow assets added.
-- [x] EPIC2 sweep assets added.
-- [x] AGENTS.md updated for `/goals` operation and repo hygiene.
-- [x] Active scripts README/index added.
-- [x] Local unit and compile verification completed.
-- [x] Snakemake dry-run verification completed.
-- [x] EPIC2 expected run tables generated and checked.
+## 11 Success Criteria Status
 
-## Current Center of Gravity
-
-The current center of gravity is the new ChIPs realstudy bug-fix wave. The
-Python tests are green, and the realstudy ChIPs Snakemake path is now local
-dry-run clean. ChIPs `2.4` is now installed in `background_project`, and a tiny
-WCE/control ChIPs smoke target runs locally. Full production execution is still
-cluster-oriented because it requires full real-study downloads and production
-reference/index assets.
-
-## ChIPs Environment and Tiny Smoke Wave
-
-- [x] Confirmed `background_project` did not expose `chips` at wave start.
-- [x] Installed or exposed ChIPs inside `background_project`.
-- [x] Added or selected a tiny local smoke config.
-- [x] Re-ran realstudy compile checks.
-- [x] Re-ran realstudy tests.
-- [x] Ran a tiny ChIPs Snakemake dry-run.
-- [x] Ran one tiny ChIPs output target, if safe.
-- [x] Updated the local-runnability assessment.
-
-## Local and Slurm ChIPs Execution Wave
-
-- [x] Inspected current ChIPs launch/config files.
-- [x] Added local full-run config for staged local assets.
-- [x] Added local Snakemake launcher.
-- [x] Updated local-vs-Slurm documentation.
-- [x] Re-ran compile and tests.
-- [x] Validated local launcher dry-run behavior.
-- [x] Rechecked tiny smoke execution or output.
-- [x] Logged final local and cluster run commands.
-
-## Cluster Resume Wave
-
-- [x] EPIC2 hilly peaks config completed on Slurm.
-- [x] EPIC2 hilly plateaus config completed on Slurm.
-- [x] EPIC2 hilly peaks metrics generated.
-- [x] EPIC2 hilly plateaus metrics generated.
-- [x] Six-config EPIC2 report README, attempt log, and per-config plots
-  generated.
-- [x] Realstudy failure root cause identified as package-import invocation in
-  `prepare_realstudy_ingest_plan`, separate from the later Snakemake cleanup
-  traceback.
-- [x] Realstudy Snakemake invocation patched and local tests/dry-run rerun.
-- [x] Realstudy ontology job resubmitted with the requested `64` CPUs, `50G`
-  RAM, `publicgrp/low`, and `2-00:00:00` walltime.
-- [ ] Realstudy resubmission finished successfully.
-- [ ] Realstudy ontology metrics and plots collected.
+- [ ] 1. Successful end-to-end production run
+- [ ] 2. Complete expected run set produced
+- [ ] 3. All simulated alignment outputs present
+- [ ] 4. All peak-call outputs present
+- [ ] 5. Ontology scoring complete for all runs
+- [ ] 6. Combined ontology table built
+- [ ] 7. Final performance summary tables built
+- [ ] 8. Final performance plots built
+- [ ] 9. Ontology class coverage acceptable
+- [ ] 10. Runtime/resource report captured
+- [ ] 11. Reproducibility package complete

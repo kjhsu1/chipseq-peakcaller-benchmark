@@ -44,6 +44,7 @@ enable_alignment_peakcalling_targets: false
 enable_ingest_peakcalling_targets: false
 enable_chips_targets: false
 enable_chips_ontology_targets: false
+realstudy_require_local_inputs: true
 params_table: "metadata/prototype_run_table.csv"
 
 chips:
@@ -54,8 +55,8 @@ chips:
     ce11: "references/ce11/genome.fa"
     mm10: "references/mm10/genome.fa"
   bowtie2_index_by_assembly:
-    ce11: "indexes/ce11/bowtie2_index"
-    mm10: "indexes/mm10/bowtie2_index"
+    ce11: "indexes/ce11/bowtie2_index/ce11"
+    mm10: "indexes/mm10/bowtie2_index/mm10"
   peak_score_column: 5
   numcopies_histone: 25
   numcopies_tf: 1000

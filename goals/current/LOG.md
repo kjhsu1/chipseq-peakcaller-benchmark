@@ -1,3 +1,97 @@
+## 2026-05-26 - Realstudy Production Validation Wave
+
+- New `/goal` objective loaded from `~/Downloads/prompt.txt`. This objective
+  replaces the older broad benchmark-wave focus for active work, but prior
+  entries are preserved as historical context and prior implementation proof.
+- Decision: keep `goals/current/` as the tracking location, since that is the
+  existing repo convention named in `AGENTS.md`.
+- Rewrote `GOAL.md`, `PLAN.md`, and `PROGRESS.md` to match the new production
+  objective: one audit-ready realstudy ChIPs ontology run with explicit
+  validation, resource capture, and reproducibility packaging.
+- Carry-forward blocker from the most recent realstudy Slurm failure:
+  Bowtie2 `ce11` index configuration points at a directory-like prefix
+  (`indexes/ce11/bowtie2_index`) rather than the actual basename prefix that
+  Bowtie2 expects. The likely correct resolved prefix is
+  `/quobyte/ikorfgrp/home/kjhsu/results/reference_assets/ce11/bowtie2/ce11`.
+- Carry-forward non-blocker: the prior `250G` realstudy failure was not a RAM
+  issue. Accounting showed roughly `10.64G` max memory used before failure.
+- Next validation order under the new objective:
+  1. inspect the live realstudy workflow files named in the prompt
+  2. confirm exact output paths from code
+  3. add production validation and provenance capture
+  4. rerun compile, tests, and dry-run
+- Live workflow inspection confirmed:
+  - expected simulated BAM outputs:
+    `results_chips/{run_id}/bowtie2/{cond}/aligned.sorted.bam(.bai)`
+  - expected final peak BEDs:
+    `results_chips/{run_id}/peaks/macs2/{run_id}_peaks.bed`
+  - expected per-run ontology outputs:
+    `analysis_outputs/chips_ontology/{run_id}/region_metrics.csv` and
+    `classified.csv`
+  - expected summary outputs under:
+    `analysis_outputs/chips_ontology/summary/`
+- Fixed the production Bowtie2 prefix bug in tracked config:
+  `chips.bowtie2_index_by_assembly.ce11` now points to
+  `indexes/ce11/bowtie2_index/ce11` instead of the directory-only path.
+- Added required production validation/provenance pieces:
+  - `scripts/validate_chips_ontology_production_run.py`
+  - `control_response_by_ontology.png`
+  - `ontology_class_coverage.csv`
+  - Slurm post-run resource reports and reproducibility package creation
+- Validation proof in the new worktree
+  (`codex/realstudy-production-validation`):
+  - `source ../snakemake_stuff/setup.sh && python -m py_compile scripts/*.py`
+    passed
+  - `source ../snakemake_stuff/setup.sh && pytest tests`
+    passed: `20 passed`
+  - First production dry-run attempt failed for environment reasons only:
+    Snakemake tried to write its source cache into a read-only OnDemand home
+    path. Reran with writable `HOME=/tmp/chipseq_snakemake_home` and
+    `XDG_CACHE_HOME=/tmp/chipseq_snakemake_cache`.
+  - Second production dry-run attempt failed because the new worktree did not
+    yet have the local untracked `references/` and `indexes/` symlink trees
+    copied over from the older checkout.
+  - Copied the local untracked asset-link trees from the older checkout into the
+    new worktree so the production config could be exercised locally without
+    changing tracked workflow code.
+  - Production dry-run then passed:
+    `snakemake -s Snakefile.py --configfile config.yaml configs/chips_cluster_full.yaml --config enable_chips_targets=true enable_chips_ontology_targets=true --dry-run`
+    resolved a `1029`-job DAG.
+- Production launch executed from the new worktree:
+  `bash slurm/submit_chips_realsim_ontology_128cpu_2tb.sh`
+  submitted Slurm job `14516460`.
+- Live production output root:
+  `/quobyte/ikorfgrp/home/kjhsu/results/chipseq_pipeline_v2_realstudy/chips_runs/chips_realsim_ontology_128cpu_2tb_20260526_034056`
+- Live run proof so far:
+  - the run passed the old failure points and reached active
+    `align_bowtie2_chips` execution
+  - latest observed Snakemake progress: `206 / 1029` steps
+  - latest observed artifact counts:
+    - `76` aligned BAMs
+    - `0` peak BEDs
+    - `0` `region_metrics.csv`
+    - `0` `classified.csv`
+  - markers still show:
+    - `RUN_COMPLETE=no`
+    - `RUN_FAILED=no`
+- Later production failure root cause: the cluster cannot resolve external
+  download hosts for selected realstudy inputs (`www.encodeproject.org` and
+  `ftp.sra.ebi.ac.uk`). The run failed in `download_realstudy_file`, not in
+  ontology scoring or ChIPs simulation.
+- Decision after user direction: stop spending time on live cluster fetches.
+  Production now defaults to pre-staged realstudy inputs via
+  `realstudy_require_local_inputs: true`; the ingest rule passes
+  `--require-local` and fails fast if the manifest-listed `data/raw/` file is
+  missing.
+- Validation after the local-input change:
+  - `pytest tests` passed: `23 passed`
+  - `python -m py_compile scripts/*.py` passed with
+    `PYTHONPYCACHEPREFIX=/tmp/chipseq_pycache`
+  - production dry-run rebuilt the `1029`-job DAG and then stopped on an
+    existing tracked/generated `metadata/data_manifest.csv` protected-output
+    condition in this local worktree; the new local-input params hook itself
+    was accepted after the wildcard signature fix.
+
 ## 2026-05-16 21:49 PDT - ChIPs Environment and Tiny Smoke Wave
 
 - New `/goal` objective: install/expose ChIPs in `background_project` and run

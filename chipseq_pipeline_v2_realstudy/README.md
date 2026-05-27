@@ -18,12 +18,27 @@ Current scope:
 - ChIPs-based realistic simulation workflow assets that learn from selected
   real-study BAM/peak inputs, simulate treatment and WCE control FASTQs, and
   hand outputs back to the alignment/peak-calling workflow shape
+- production validation and reproducibility hooks for the ChIPs ontology run,
+  including a post-run validation report, runtime/resource capture, and
+  reproducibility package under the final output root
+- production real-study input handling now defaults to pre-staged local inputs:
+  populate the manifest-listed BAM/FASTQ files under `data/raw/` before launch
 - workflow entrypoints that mirror the controlled pipeline structure without
   forcing a shared-framework refactor in this first pass
 
 Key docs:
 
 - `docs/chips_realsim_workflow.md`
+
+Production validation command:
+
+```bash
+source ../snakemake_stuff/setup.sh
+python scripts/validate_chips_ontology_production_run.py \
+  --run-table metadata/prototype_run_table.csv \
+  --output-root /path/to/chips_run_output_root \
+  --write-report /path/to/chips_run_output_root/reproducibility/validation_report.md
+```
 
 Local and cluster execution:
 

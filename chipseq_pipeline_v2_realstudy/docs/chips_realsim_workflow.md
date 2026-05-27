@@ -31,12 +31,18 @@ in the default ChIPs target list until local BAM inputs and peak calls are ready
 - `metadata/data_manifest.csv`
 - `metadata/prototype_run_table.csv`
 - `references/{assembly}/genome.fa`
-- `indexes/{assembly}/bowtie2_index`
+- `indexes/{assembly}/bowtie2_index/{assembly}`
 - downloaded FASTQs or BAMs listed in the manifest
+
+Production runs default to `realstudy_require_local_inputs: true`. In this
+mode, the ingest rule verifies that the selected manifest files already exist
+under `data/raw/`; it does not attempt ENCODE, GEO, or EBI downloads from the
+cluster job.
 
 Reference and index paths are configured under `chips.reference_fasta_by_assembly`
 and `chips.bowtie2_index_by_assembly`. The default config uses production-style
-paths such as `references/ce11/genome.fa`. The local dry-run override
+paths such as `references/ce11/genome.fa` and
+`indexes/ce11/bowtie2_index/ce11`. The local dry-run override
 `configs/chips_local_dryrun.yaml` points to the existing toy `ce11_1pct`
 reference only to validate workflow shape on a Mac; it is not the production
 reference for scientific execution.
@@ -60,6 +66,13 @@ For full local execution, stage assets under ignored local paths and use
 - `results_chips/{run_id}/con/reads_R2.fastq`
 - `results_chips/{run_id}/bowtie2/{cond}/aligned.sorted.bam`
 - `results_chips/{run_id}/peaks/macs2/{run_id}_peaks.bed`
+- `analysis_outputs/chips_ontology/{run_id}/region_metrics.csv`
+- `analysis_outputs/chips_ontology/{run_id}/classified.csv`
+- `analysis_outputs/chips_ontology/combined_region_metrics.csv`
+- `analysis_outputs/chips_ontology/summary/control_response_by_ontology.png`
+- `analysis_outputs/chips_ontology/summary/ontology_class_coverage.csv`
+- `reproducibility/validation_report.md`
+- `reproducibility/runtime_resource_report.txt`
 
 ## Cluster Launch
 
@@ -149,3 +162,14 @@ slurm/submit_chips_realsim_ontology_128cpu_2tb.sh
 ```
 
 The submission script follows the latest successful cluster pattern: copy the pipeline to a per-job work directory, remove Python bytecode/Snakemake state, symlink high-volume outputs into the archived result directory, then run Snakemake in the `background_project` Conda environment.
+
+After Snakemake finishes, the Slurm job now also:
+
+1. writes runtime/resource reports under
+   `analysis_outputs/chips_ontology/summary/`
+2. runs `scripts/validate_chips_ontology_production_run.py`
+3. builds a reproducibility package under `reproducibility/`
+
+The job preserves Snakemake's failure semantics: a successful cleanup or report
+step does not hide a workflow failure, and a validation/provenance failure can
+still fail the final job exit code.

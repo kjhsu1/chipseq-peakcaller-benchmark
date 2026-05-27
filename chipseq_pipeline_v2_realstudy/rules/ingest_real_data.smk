@@ -19,19 +19,25 @@ def download_target_path(wc):
     return manifest_file_path(find_manifest_row(wc.study_id, wc.role))
 
 
+def require_local_flag(wc):
+    return "--require-local" if config_bool("realstudy_require_local_inputs", True) else ""
+
+
 rule download_realstudy_file:
     input:
         manifest="metadata/data_manifest.csv"
     output:
         done="analysis_outputs/realstudy_ingest_prep/download_markers/{study_id}/{role}.done"
     params:
-        output_path=download_target_path
+        output_path=download_target_path,
+        require_local=require_local_flag
     shell:
         """
         python -m scripts.download_real_study_file \
           --manifest-csv {input.manifest} \
           --study-id {wildcards.study_id} \
           --role {wildcards.role} \
+          {params.require_local} \
           --output-path {params.output_path}
         touch {output.done}
         """

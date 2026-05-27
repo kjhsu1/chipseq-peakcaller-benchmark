@@ -26,6 +26,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Replace any existing local file instead of resuming/skipping it.",
     )
+    parser.add_argument(
+        "--require-local",
+        action="store_true",
+        help="Require a pre-staged local file and never attempt a network transfer.",
+    )
     return parser.parse_args()
 
 
@@ -51,6 +56,24 @@ def choose_transfer_mode(
     if "bytes" in accept_ranges.lower():
         return "resume"
     return "restart"
+
+
+def should_trust_existing_file(existing_size: int, remote_size: int | None, overwrite: bool) -> bool:
+    """Return whether a non-empty local file should be accepted without remote metadata."""
+    if overwrite or existing_size <= 0:
+        return False
+    return remote_size is None
+
+
+def ensure_required_local_file(out_path: Path, existing_size: int) -> None:
+    """Exit unless a non-empty pre-staged local file is already present."""
+    if existing_size > 0:
+        print(str(out_path))
+        return
+    raise SystemExit(
+        f"Missing required pre-staged input: {out_path}. "
+        "Populate data/raw before running the local-only realstudy workflow."
+    )
 
 
 def remote_metadata(session: requests.Session, remote_url: str, timeout: tuple[int, int]) -> tuple[int | None, str]:
@@ -89,8 +112,14 @@ def main() -> None:
         out_path = study_dir / filename_from_url(remote_url)
     session = requests.Session()
     timeout = (args.connect_timeout, args.read_timeout)
-    remote_size, accept_ranges = remote_metadata(session, remote_url, timeout)
     existing_size = out_path.stat().st_size if out_path.exists() else 0
+    if args.require_local:
+        ensure_required_local_file(out_path, existing_size)
+        return
+    remote_size, accept_ranges = remote_metadata(session, remote_url, timeout)
+    if should_trust_existing_file(existing_size, remote_size, args.overwrite):
+        print(str(out_path))
+        return
     mode = choose_transfer_mode(existing_size, remote_size, accept_ranges, args.overwrite)
     if mode == "skip":
         print(str(out_path))
