@@ -24,7 +24,7 @@ emit_pmf_csv: true         # disable to skip writing per-run PMF CSVs during pro
 
 # NEW: aligners used in the sweep (must match alignment.smk output folder names)
 aligners: ["bowtie2"]
-peakcaller_list: ["macs2", "epic2"]
+peakcaller_list: ["macs2", "homer"]
 macs2_mode: ["narrow"]   # MACS2 decoding mode: narrow or broad
 use_control: [true]
 
@@ -58,6 +58,13 @@ peakcallers:
       ce11_1pct: "data/genomes/ce11_1pct/chrom_sizes.tsv"
     effective_genome_fraction:
       ce11_1pct: 1.0
+  homer:
+    style_by_mode:
+      narrow: "factor"
+      broad: "histone"
+    flags_by_mode:
+      narrow: ""
+      broad: ""
 
 # Alignment indexes keyed by genome
 indexes:

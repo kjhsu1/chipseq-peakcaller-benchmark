@@ -8,10 +8,16 @@ from typing import Dict, Iterable, List, Optional, Tuple
 import pandas as pd
 
 
+PEAKLIKE_MAX_SIGMA = 5
+PLATEAULIKE_MIN_SIGMA = 15
+
+
 def resolve_peak_path(results_dir: Path, run_id: str, peakcaller: str) -> Path:
     """Return the expected called-peak path for one run."""
     if peakcaller == "epic2":
         return results_dir / run_id / "peaks" / "epic2" / f"{run_id}_domains.bed"
+    if peakcaller == "homer":
+        return results_dir / run_id / "peaks" / "homer" / f"{run_id}_peaks.bed"
 
     macs2_dir = results_dir / run_id / "peaks" / "macs2"
     candidate_paths = [
@@ -20,6 +26,54 @@ def resolve_peak_path(results_dir: Path, run_id: str, peakcaller: str) -> Path:
         macs2_dir / f"{run_id}_peaks.broadPeak",
     ]
     return next((path for path in candidate_paths if path.exists()), candidate_paths[0])
+
+
+def expected_decode_mode(tf_sigma: float) -> str:
+    """Return the expected broad/narrow decoding mode for one planted shape."""
+    if tf_sigma <= PEAKLIKE_MAX_SIGMA:
+        return "narrow"
+    if tf_sigma >= PLATEAULIKE_MIN_SIGMA:
+        return "broad"
+    raise ValueError(
+        "Cannot infer expected decode mode for tf_sigma values between "
+        f"{PEAKLIKE_MAX_SIGMA} and {PLATEAULIKE_MIN_SIGMA}."
+    )
+
+
+def validate_decode_modes(rows: Iterable[Dict[str, object]]) -> None:
+    """Raise if any run row mixes planted shape with the wrong decode mode."""
+    mismatches = []
+    for row in rows:
+        tf_sigma = float(row["tf_sigma"])
+        observed = str(row.get("macs2_mode", "narrow"))
+        expected = expected_decode_mode(tf_sigma)
+        if observed != expected:
+            mismatches.append(
+                {
+                    "run_id": row.get("run_id", "unknown"),
+                    "tf_sigma": tf_sigma,
+                    "observed_mode": observed,
+                    "expected_mode": expected,
+                }
+            )
+    if not mismatches:
+        return
+    first = mismatches[0]
+    raise ValueError(
+        "Decode-mode mismatch detected between planted shape and caller mode. "
+        f"First mismatch: run_id={first['run_id']}, tf_sigma={first['tf_sigma']}, "
+        f"observed={first['observed_mode']}, expected={first['expected_mode']}. "
+        "Peak-like shapes (tf_sigma <= 5) must use narrow mode; "
+        "plateau-like shapes (tf_sigma >= 15) must use broad mode."
+    )
+
+
+def truth_mode_for_row(row: Dict[str, object]) -> str:
+    """Return the planted-truth representation used for one run row."""
+    peakcaller = str(row.get("peakcaller", "macs2"))
+    if peakcaller == "epic2":
+        return "interval"
+    return expected_decode_mode(float(row["tf_sigma"]))
 
 
 def counts_to_metrics(

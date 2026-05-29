@@ -44,6 +44,15 @@
   finding/blocker from `LOG.md`.
 - Update `LOG.md` whenever an approach fails, an assumption matters, or a
   cluster-only/local-only limitation is discovered.
+- For long-running local or cluster jobs, avoid frequent polling and repetitive
+  status check-ins. Do one early inspection to estimate the next meaningful
+  checkpoint, then prefer heartbeat-style deferred resumes over active
+  monitoring.
+- For those long-running jobs, only append to `LOG.md` at meaningful
+  milestones: launch, ETA-defining early check, phase transition, completion,
+  score-ready output, important failure, or blocker. Do not spend tokens on
+  repeated "still running" updates when no decision or downstream action has
+  changed.
 
 ## Repo Hygiene
 - Keep active workflows obvious. Archive low-utility historical scripts instead

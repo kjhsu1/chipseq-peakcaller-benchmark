@@ -43,6 +43,8 @@ Reference and index paths are configured under `chips.reference_fasta_by_assembl
 and `chips.bowtie2_index_by_assembly`. The default config uses production-style
 paths such as `references/ce11/genome.fa` and
 `indexes/ce11/bowtie2_index/ce11`. The local dry-run override
+`indexes/ce11/bowtie2_index/ce11`. The Bowtie2 value must be the basename
+prefix used with `bowtie2 -x`, not just the containing directory. The local dry-run override
 `configs/chips_local_dryrun.yaml` points to the existing toy `ce11_1pct`
 reference only to validate workflow shape on a Mac; it is not the production
 reference for scientific execution.

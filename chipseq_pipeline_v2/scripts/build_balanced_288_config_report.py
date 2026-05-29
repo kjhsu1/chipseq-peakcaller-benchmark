@@ -14,6 +14,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from scripts.category_summary_lib import canonical_label, parse_simple_yaml_map
 from scripts.eval_helpers import (
     aggregate_counts_summary,
     metric_definition_lines,
@@ -46,6 +47,12 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=None,
         help="Optional run-attempt log to copy into the report root",
+    )
+    parser.add_argument(
+        "--category-map",
+        type=Path,
+        default=Path("configs/category_name_map.yaml"),
+        help="Simple YAML map from raw config/report names to canonical labels",
     )
     return parser.parse_args()
 
@@ -223,12 +230,12 @@ def write_metric_definition_file(output_path: Path, data: pd.DataFrame) -> None:
     output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def write_root_readme(output_dir: Path, categories: List[Tuple[str, str]]) -> None:
+def write_root_readme(output_dir: Path, categories: List[Tuple[str, str, str]]) -> None:
     """Write a root README listing category folders and their contents."""
     lines = [
-        "# Balanced 288 Config Report",
+        "# Balanced Config Report",
         "",
-        "This directory contains one subdirectory per completed balanced 288 config.",
+        "This directory contains one subdirectory per completed balanced config report input.",
         "Each category folder includes:",
         "- `per_run_stats.csv` produced by `scripts/peak_pr_stats.py`",
         "- `group_summary.csv` produced by `scripts/peak_pr_stats.py` using counts-based aggregation",
@@ -240,10 +247,18 @@ def write_root_readme(output_dir: Path, categories: List[Tuple[str, str]]) -> No
         "",
         "## Included Categories",
     ]
-    for category_name, source_dir in categories:
-        lines.append(f"- `{category_name}` from `{source_dir}`")
+    for category_name, raw_name, source_dir in categories:
+        if category_name == raw_name:
+            lines.append(f"- `{category_name}` from `{source_dir}`")
+        else:
+            lines.append(
+                f"- `{category_name}` from `{source_dir}` "
+                f"(raw report dir: `{raw_name}`)"
+            )
     lines.append("")
-    lines.append("If present, `attempt_history.log` records the known Slurm/log history for these six config runs.")
+    lines.append(
+        "If present, `attempt_history.log` records the known Slurm/log history for these config runs."
+    )
     lines.append("")
     (output_dir / "README.md").write_text("\n".join(lines), encoding="utf-8")
 
@@ -252,8 +267,13 @@ def main() -> None:
     """Build the combined balanced 288 config report."""
     args = parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    category_map = (
+        parse_simple_yaml_map(args.category_map)
+        if args.category_map.exists()
+        else {}
+    )
 
-    categories: List[Tuple[str, str]] = []
+    categories: List[Tuple[str, str, str]] = []
     for input_dir in args.input_dirs:
         per_run_path = input_dir / "per_run_stats.csv"
         manifest_path = input_dir / "run_filter_manifest.txt"
@@ -267,7 +287,8 @@ def main() -> None:
         summary = aggregate_plot_points(data)
         summary.to_csv(input_dir / "plot_point_summary.csv", index=False)
 
-        category_name = input_dir.name
+        raw_name = input_dir.name
+        category_name = canonical_label(raw_name, category_map)
         source_results_dir = manifest_data.get("results_dir", "unknown")
         fixed_lines, swept_lines = summarize_parameter_values(data)
         plot_summary(
@@ -292,7 +313,7 @@ def main() -> None:
             summary=summary,
         )
         write_metric_definition_file(input_dir / "metric_definition.md", data)
-        categories.append((category_name, source_results_dir))
+        categories.append((category_name, raw_name, source_results_dir))
 
     if args.attempt_log is not None and args.attempt_log.exists():
         (args.output_dir / "attempt_history.log").write_text(

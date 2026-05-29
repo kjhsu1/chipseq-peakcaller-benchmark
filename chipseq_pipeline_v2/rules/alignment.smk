@@ -10,11 +10,11 @@ def retained_bam_output(path):
 # Bowtie2
 rule align_bowtie2:
     input:
-        r1 = "results/{run_id}/{cond}/reads_R1.fasta",
-        r2 = "results/{run_id}/{cond}/reads_R2.fasta",
+        r1 = result_path("{run_id}", "{cond}", "reads_R1.fasta"),
+        r2 = result_path("{run_id}", "{cond}", "reads_R2.fasta"),
     output:
-        bam = retained_bam_output("results/{run_id}/bowtie2/{cond}/aligned.sorted.bam"),
-        bai = retained_bam_output("results/{run_id}/bowtie2/{cond}/aligned.sorted.bam.bai"),
+        bam = retained_bam_output(result_path("{run_id}", "bowtie2", "{cond}", "aligned.sorted.bam")),
+        bai = retained_bam_output(result_path("{run_id}", "bowtie2", "{cond}", "aligned.sorted.bam.bai")),
     threads: 4
     params:
         bt2 = lambda wc: bowtie2_index(find_row(wc.run_id))
@@ -29,11 +29,11 @@ rule align_bowtie2:
 # BWA-MEM
 rule align_bwa_mem:
     input:
-        r1 = "results/{run_id}/{cond}/reads_R1.fasta",
-        r2 = "results/{run_id}/{cond}/reads_R2.fasta",
+        r1 = result_path("{run_id}", "{cond}", "reads_R1.fasta"),
+        r2 = result_path("{run_id}", "{cond}", "reads_R2.fasta"),
     output:
-        bam = retained_bam_output("results/{run_id}/bwa-mem/{cond}/aligned.sorted.bam"),
-        bai = retained_bam_output("results/{run_id}/bwa-mem/{cond}/aligned.sorted.bam.bai"),
+        bam = retained_bam_output(result_path("{run_id}", "bwa-mem", "{cond}", "aligned.sorted.bam")),
+        bai = retained_bam_output(result_path("{run_id}", "bwa-mem", "{cond}", "aligned.sorted.bam.bai")),
     threads: 4
     params:
         bwa = lambda wc: bwa_index(find_row(wc.run_id))
@@ -51,7 +51,7 @@ def align_all():
     for r in SAMPLES:
         rid = r["run_id"]; alg = r["aligner"]
         for cond in ("con", "treat"):
-            base = f"results/{rid}/{alg}/{cond}/aligned.sorted.bam"
+            base = result_path(rid, alg, cond, "aligned.sorted.bam")
             outs += [base, f"{base}.bai"]
     return outs
 

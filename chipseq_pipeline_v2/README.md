@@ -195,6 +195,22 @@ Revised production configs:
 - `configs/balanced_tfclean_realistic_plateaus_wavy_broad_integrated_288.yaml`
 - `configs/balanced_tfclean_realistic_plateaus_hilly_broad_integrated_288.yaml`
 
+Canonical six-category interpretation for those revised configs:
+- `balanced_tfclean_flatearth_peaks_broad_integrated_288` -> `flatearth_peak_narrow`
+- `balanced_tfclean_flatearth_plateaus_broad_integrated_288` -> `flatearth_plateau_broad`
+- `balanced_tfclean_realistic_peaks_wavy_narrow_integrated_288` -> `wavy_peak_narrow`
+- `balanced_tfclean_realistic_peaks_hilly_narrow_integrated_288` -> `hilly_peak_narrow`
+- `balanced_tfclean_realistic_plateaus_wavy_broad_integrated_288` -> `wavy_plateau_broad`
+- `balanced_tfclean_realistic_plateaus_hilly_broad_integrated_288` -> `hilly_plateau_broad`
+
+Important decoder-safety note:
+- the flatearth peak config keeps a legacy filename token containing `broad`,
+  but its current planted shape and decode mode are narrow
+  (`tf_sigma: 5`, `macs2_mode: ["narrow"]`)
+- use the canonical label `flatearth_peak_narrow` in figures and summaries
+- the workflow now validates this shape/mode contract from `tf_sigma` at build
+  time, so a peak/broad or plateau/narrow mismatch fails immediately
+
 Shape-check pilot configs:
 - `configs/pilot_shapecheck_flatearth_peaks_broad_2.yaml`
 - `configs/pilot_shapecheck_flatearth_plateaus_broad_2.yaml`
@@ -233,6 +249,10 @@ New sweep knobs:
   - TF-like / narrow: `tf_sigma <= 5`
   - histone-like / broad: `tf_sigma >= 15`
   - intermediate values (`5 < tf_sigma < 15`) are treated as ambiguous and excluded from the headline 8-category summaries
+
+See also:
+- `docs/category_semantics.md`
+- `docs/nomenclature_table.md`
 
 ## Sequential Slurm Sweeps
 The `slurm/` directory contains sequential Slurm submission assets for the two
@@ -289,6 +309,71 @@ Balanced-report helpers:
   - `plot_point_summary.csv`
   - `data_info.md`
   - plus a root `README.md` and optional copied `attempt_history.log`
+- `scripts/build_homer_staged_report.py` wraps that report builder for the
+  staged HOMER `128`-run wave and writes a `stage_status.txt` manifest so it is
+  obvious whether the combined report is partial or the full six-category set
+- `scripts/summarize_homer_staged_categories.py` writes a compact staged HOMER
+  headline summary across the finished category stats and records which
+  categories are still missing
+- `scripts/compare_peakcaller_staged_categories.py` writes the paired staged
+  HOMER-vs-MACS2 caller comparison from whichever matched category stats are
+  complete so far
+- `score_hilly_macs2_controls.sh` is the guarded local scorer for the two
+  remaining hilly MACS2 staged control categories; it refuses to run until a
+  category has all `128` MACS2 peak BEDs
+- `run_balanced_tfclean_288_local.sh` is the local sequential entrypoint for
+  the validated six `balanced_tfclean_*_288.yaml` MACS2 configs; it defaults to
+  `--dry-run`, can be switched to full execution with `--run`, and accepts
+  raw config paths, canonical selectors like `wavy_peak_narrow`, and batch
+  selectors like `wavy_pair`, `hilly_pair`, `flatearth_pair`, and `all_six`. A
+  second dry-run against a currently running local result root may report the
+  active Snakemake directory lock.
+- `refresh_balanced_tfclean_288_local_report.sh` is the guarded local scorer
+  and report refresher for completed `results_balanced_tfclean_*_288` MACS2
+  runs; it rebuilds per-config stats plus the combined local 288 report once
+  each selected config has all `288` MACS2 peak BEDs, and it also accepts
+  canonical selectors like `hilly_plateau_broad` plus batch selectors like
+  `wavy_pair`. If a selected local result root does not exist yet, it exits
+  with a clean not-ready message.
+- `scripts/summarize_balanced_tfclean_288_progress.py` writes a compact
+  milestone summary for selected local `results_balanced_tfclean_*_288` MACS2
+  roots. It accepts the same canonical selectors and pair/full-batch selectors
+  as the local runner/refresher helpers. The default `all_six` refresh writes
+  the canonical full-wave artifact at
+  `analysis_outputs/tfclean_balanced_288_local_progress_current/`, while
+  subset refreshes write selector-scoped artifact roots instead of overwriting
+  that full-wave view.
+  This is the preferred low-token checkpoint artifact for heartbeat-driven
+  monitoring while runs are still far from score-ready. It also reports
+  canonical selectors, launch-state buckets, and recommended next actions so
+  the full local six-config/`1728` wave can be managed from one summary.
+- `scripts/build_balanced_tfclean_288_decision_summary.py` sits one layer above
+  that progress table and writes a heartbeat-friendly decision artifact at
+  `analysis_outputs/tfclean_balanced_288_local_decision_current/`. It turns
+  the full-wave progress CSV into one batch-level next action plus a compact
+  per-root snapshot so future resumes do not need to infer the operator state
+  manually.
+- `refresh_balanced_tfclean_288_local_decision.sh` is the normal one-command
+  refresh path for that decision layer. It first refreshes the authoritative
+  `all_six` progress artifact, then rebuilds the current decision summary from
+  that updated CSV.
+- `refresh_balanced_tfclean_288_local_progress.sh` is the one-command wrapper
+  for that progress summarizer. Use it when a heartbeat resume needs a cheap
+  checkpoint refresh for selectors like `wavy_pair`, `hilly_pair`, or
+  `all_six` before deciding whether the batch is still in read generation,
+  has crossed into alignment/peak-calling, or is ready for score refresh.
+- `launch_balanced_tfclean_288_remaining_local.sh` is the follow-on launcher
+  for the same local wave. It refreshes the `all_six` progress artifact,
+  or a requested subset artifact such as `flatearth_pair` or `hilly_pair`,
+  selects only configs whose `launch_state` is `not_started`, and forwards
+  those canonical selectors into `run_balanced_tfclean_288_local.sh`. This is
+  the preferred way to continue the local six-config/`1728` wave without
+  accidentally re-targeting roots that are already active. `--limit N` can be
+  used to continue only the next `N` untouched configs from the selected
+  ordered subset.
+- `refresh_homer_staged_artifacts.sh` reruns the staged HOMER combined report,
+  staged HOMER summary, and staged HOMER-vs-MACS2 comparison refreshes with
+  the local-Mac-safe Conda and `MPLCONFIGDIR` setup in one command
 - `scripts/investigate_peak_recovery.py` traces each run back to planted peak centers and called peak intervals
 - `scripts/summarize_peak_recovery_patterns.py` summarizes false-negative and false-positive seed/locus patterns from those trace outputs
 - `balanced_288_run_attempt_history.log` records the known Slurm/log attempt history for the six balanced configs and their retries

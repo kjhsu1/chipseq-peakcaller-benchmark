@@ -7,7 +7,10 @@ import pandas as pd
 from scripts.eval_helpers import (
     aggregate_counts_summary,
     aggregate_mean_of_runs_summary,
+    expected_decode_mode,
     resolve_peak_path,
+    truth_mode_for_row,
+    validate_decode_modes,
 )
 
 
@@ -56,3 +59,27 @@ def test_resolve_peak_path_supports_epic2_and_macs2(tmp_path):
 
     assert resolve_peak_path(results_dir, "0001", "macs2") == macs2_peak
     assert resolve_peak_path(results_dir, "0002", "epic2") == epic2_peak
+
+
+def test_expected_decode_mode_tracks_planted_shape():
+    """Decode mode should follow the planted shape family."""
+    assert expected_decode_mode(5) == "narrow"
+    assert expected_decode_mode(20) == "broad"
+
+
+def test_validate_decode_modes_rejects_peak_broad_mismatch():
+    """Peak-like rows should not be allowed to run in broad mode."""
+    rows = [{"run_id": "0001", "tf_sigma": 5, "macs2_mode": "broad"}]
+    try:
+        validate_decode_modes(rows)
+    except ValueError as exc:
+        assert "expected=narrow" in str(exc)
+    else:
+        raise AssertionError("Expected decode-mode validation to fail.")
+
+
+def test_truth_mode_for_row_uses_shape_not_legacy_mode_field():
+    """Truth-mode selection should match planted shape semantics."""
+    assert truth_mode_for_row({"peakcaller": "macs2", "tf_sigma": 5}) == "narrow"
+    assert truth_mode_for_row({"peakcaller": "macs2", "tf_sigma": 20}) == "broad"
+    assert truth_mode_for_row({"peakcaller": "epic2", "tf_sigma": 5}) == "interval"

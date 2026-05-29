@@ -3,7 +3,14 @@
 configfile: "config.yaml"
 
 from itertools import product
+from scripts.eval_helpers import validate_decode_modes
 from scripts.seed_helpers import derive_condition_seed
+
+RESULT_ROOT = config.get("result_root", "results").rstrip("/")
+
+
+def result_path(*parts):
+    return "/".join([RESULT_ROOT, *parts])
 
 def get_peakcaller_list(cfg):
     if "peakcaller_list" in cfg:
@@ -112,6 +119,7 @@ def build_samples(cfg):
     return S
 
 SAMPLES = build_samples(config)
+validate_decode_modes(SAMPLES)
 SAMPLE_BY_ID = {row["run_id"]: row for row in SAMPLES}
 
 # ---------- helpers shared by modules ----------
@@ -135,6 +143,15 @@ def macs2_flags():
         return "-f BAMPE --nomodel --extsize 147 --keep-dup all --nolambda -q 0.5"
     return macs2_cfg.get("flags", "")
 def epic2_flags():      return config["peakcallers"].get("epic2", {}).get("flags", "")
+def homer_flags(row):
+    mode = row.get("macs2_mode", "narrow")
+    homer_cfg = config["peakcallers"].get("homer", {})
+    style_map = homer_cfg.get("style_by_mode", {"narrow": "factor", "broad": "histone"})
+    flags_map = homer_cfg.get("flags_by_mode", {})
+    return {
+        "style": style_map.get(mode, "factor"),
+        "flags": flags_map.get(mode, ""),
+    }
 
 # ---------- parameter manifest ----------
 rule write_params_table:

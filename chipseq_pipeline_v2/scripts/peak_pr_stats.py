@@ -17,6 +17,7 @@ from scripts.eval_helpers import (
     counts_to_metrics,
     metric_definition_lines,
     resolve_peak_path,
+    truth_mode_for_row,
 )
 
 try:
@@ -166,15 +167,6 @@ def filter_runs(params: pd.DataFrame) -> pd.DataFrame:
     unbiased = (params["gc_exp"] == 0) & (params["acc_exp"] == 0)
     both_biased = (params["gc_exp"] > 0) & (params["acc_exp"] > 0)
     return params[unbiased | both_biased].copy()
-
-
-def truth_mode_for_row(row: pd.Series) -> str:
-    """Return the truth mode used for a run."""
-    macs2_mode = str(row.get("macs2_mode", "narrow"))
-    peakcaller = str(row.get("peakcaller", "macs2"))
-    if peakcaller == "epic2" or macs2_mode == "broad":
-        return "interval"
-    return "center"
 
 
 def planted_truth_path(results_dir: Path, row: pd.Series) -> Path:

@@ -8,8 +8,14 @@ The current controlled simulator baseline is the TF-clean six:
 - `*_peak_*`: narrower TF-like planted signal with `tf_sigma <= 5`.
 - `*_plateau_*`: broader histone-like planted signal with `tf_sigma >= 15`.
 
+The decode-mode contract is now explicit:
+
+- `*_peak_*` categories must use narrow decoding.
+- `*_plateau_*` categories must use broad decoding.
+- The workflow now validates this invariant from `tf_sigma` at build time so a
+  peak/broad or plateau/narrow mismatch fails immediately.
+
 Important interpretation limits:
 
 - "plateau" versus "peak" is directionally useful, but the naming is only partly trustworthy because the benchmark still couples shape labels to current simulator settings rather than an external morphological ontology.
-- Some category differences are confounded with MACS2 broad versus narrow calling mode.
 - The current hilly labeling corresponds to a dense hotspot process, not a literal percentage of loci.

@@ -1,28 +1,30 @@
 genomes:
   - "ce11_1pct"
 
-coverage_treat: [5, 10, 20]
+coverage_treat: [5, 10]
 coverage_ctrl:  [0.5, 1, 2, 4, 8, 12, 16, 24]
 
 tf_peak_count_treat: [5]
 fragment_length: [150]
 read_length:     [38]
-tf_sigma:        [5]
-tf_enrich:       [1500, 2500]
+tf_sigma:        [20]
+tf_enrich:       [1000, 2500]
 tf_exp:          [1.0]
-seed:            [11, 23, 37, 53, 71, 89]
-gc_exp:          [0.0]
-acc_exp:         [0.0]
-map_coverage_pct: [0]
+seed:            [11, 23, 37, 53]
+gc_exp:          [0.6]
+acc_exp:         [0.5]
+acc_weight:      3.0
+map_coverage_pct: [3]
 map_sigma:        [1.5]
 map_enrich:       [10]
 map_exp:          [1.0]
 nb_k:            [1000000]
 emit_pmf_csv: false
+result_root: "results_homer_tfclean_realistic_plateaus_hilly_broad_128"
 
 aligners: ["bowtie2"]
-peakcaller_list: ["macs2"]
-macs2_mode: ["narrow"]
+peakcaller_list: ["homer"]
+macs2_mode: ["broad"]
 use_control: [true]
 
 acc_beds:     ["bedA"]
@@ -45,10 +47,17 @@ peakcallers:
     preset: "benchmark_control_sensitive_default"
     genome_size:
       ce11_1pct: "1.0e6"
+  homer:
+    style_by_mode:
+      narrow: "factor"
+      broad: "histone"
+    flags_by_mode:
+      narrow: ""
+      broad: ""
 
 indexes:
   ce11_1pct:
     bowtie2_index: "data/indexes/ce11_1pct/bowtie2_index/ce11_1pct"
     bwa_index:     "data/indexes/ce11_1pct/bwa_index/ce11_1pct"
 
-params_table: "results/params/run_params.csv"
+params_table: "results_homer_tfclean_realistic_plateaus_hilly_broad_128/params/homer_tfclean_realistic_plateaus_hilly_broad_integrated_128_run_params.csv"

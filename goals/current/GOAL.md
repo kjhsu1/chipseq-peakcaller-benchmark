@@ -125,3 +125,30 @@ At the end, report:
 8. reproducibility package path and contents
 9. decisions made, especially coverage threshold and required plots
 10. real remaining limitations or follow-ups
+
+## Additive Goal Wave: Broad/Narrow-Safe Peakcaller Retry
+
+Continue the existing `/goals` history without deleting prior content. The new
+objective is to repair the controlled six-category decoding semantics, replace
+the failed EPIC2 comparison path with a better-fit peakcaller that supports
+both broad and narrow decoding, validate it locally in staged batches, and keep
+the HPC realstudy plan moving with current commands, logs, and blockers.
+
+Additional success conditions for this wave:
+
+49. The six controlled categories have an explicit mapping of planted signal
+    shape, intended decoding mode, and actual configured decoding mode.
+50. Any category where peak shape and decoding mode are mismatched is fixed and
+    documented so the mistake cannot recur silently.
+51. A replacement local+cluster-compatible peakcaller with both broad and
+    narrow support is researched from primary sources and justified in the repo.
+52. The EPIC2 comparison path is superseded by the selected replacement caller
+    in configs, rules, scripts, docs, and Slurm wrappers where appropriate.
+53. Small local validation loops for the new caller pass before larger staged
+    batches are attempted.
+54. Parameter tuning for the new caller is recorded with concrete tested
+    settings, observations, and retained settings.
+55. Staged local batches produce six-category PR/recall/F1 plots and anomaly
+    checks before any attempt to treat the larger sweep shape as trustworthy.
+56. The MACS2 rerun path is also checked for planted-shape versus decoding-mode
+    mismatch and corrected if necessary.

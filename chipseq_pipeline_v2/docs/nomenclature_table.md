@@ -2,7 +2,7 @@
 
 | Current config directory | Canonical short name | Signal family | Background family | MACS2 mode |
 | --- | --- | --- | --- | --- |
-| `balanced_tfclean_flatearth_peaks_broad_integrated_288` | `flatearth_peak_broad` | peak-like | flatearth | broad |
+| `balanced_tfclean_flatearth_peaks_broad_integrated_288` | `flatearth_peak_narrow` | peak-like | flatearth | narrow |
 | `balanced_tfclean_flatearth_plateaus_broad_integrated_288` | `flatearth_plateau_broad` | plateau-like | flatearth | broad |
 | `balanced_tfclean_realistic_peaks_wavy_narrow_integrated_288` | `wavy_peak_narrow` | peak-like | wavy | narrow |
 | `balanced_tfclean_realistic_peaks_hilly_narrow_integrated_288` | `hilly_peak_narrow` | peak-like | hilly / hotspot-dense | narrow |
@@ -11,3 +11,7 @@
 
 The canonical names are the preferred labels for analysis tables and figure
 captions added in this cleanup pass.
+
+The flatearth peak config retains a legacy filename containing `broad`, but its
+current planted shape and decoding mode are narrow. Downstream analysis should
+use the canonical label `flatearth_peak_narrow`, not the stale filename token.

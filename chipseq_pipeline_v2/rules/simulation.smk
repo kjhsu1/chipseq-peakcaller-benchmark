@@ -5,7 +5,7 @@ EMIT_PMF_DISABLED_MARKER = config_bool("emit_pmf_disabled_marker", True)
 
 
 def pmf_output_path(cond):
-    base = f"results/{{run_id}}/{cond}"
+    base = result_path("{run_id}", cond)
     if EMIT_PMF_CSV:
         return f"{base}/pmf.csv"
     if EMIT_PMF_DISABLED_MARKER:
@@ -24,8 +24,8 @@ def retained_sim_outputs():
     outputs = []
     for row in SAMPLES:
         run_id = row["run_id"]
-        outputs.append(f"results/{run_id}/treat/planted_peaks.bed")
-        outputs.append(f"results/{run_id}/treat/planted_peak_intervals.bed")
+        outputs.append(result_path(run_id, "treat", "planted_peaks.bed"))
+        outputs.append(result_path(run_id, "treat", "planted_peak_intervals.bed"))
         if EMIT_PMF_CSV or EMIT_PMF_DISABLED_MARKER:
             outputs.append(pmf_output_path("con").format(run_id=run_id))
             outputs.append(pmf_output_path("treat").format(run_id=run_id))
@@ -34,10 +34,10 @@ def retained_sim_outputs():
 
 rule simulate_reads_con:
     output:
-        r1=temp("results/{run_id}/con/reads_R1.fasta"),
-        r2=temp("results/{run_id}/con/reads_R2.fasta"),
-        peaks=temp("results/{run_id}/con/planted_peaks.bed"),
-        peak_intervals=temp("results/{run_id}/con/planted_peak_intervals.bed"),
+        r1=temp(result_path("{run_id}", "con", "reads_R1.fasta")),
+        r2=temp(result_path("{run_id}", "con", "reads_R2.fasta")),
+        peaks=temp(result_path("{run_id}", "con", "planted_peaks.bed")),
+        peak_intervals=temp(result_path("{run_id}", "con", "planted_peak_intervals.bed")),
         pmf=pmf_output("con"),
     params:
         cov=lambda wc: find_row(wc.run_id)["coverage_ctrl"],
@@ -104,10 +104,10 @@ rule simulate_reads_con:
 
 rule simulate_reads_treat:
     output:
-        r1=temp("results/{run_id}/treat/reads_R1.fasta"),
-        r2=temp("results/{run_id}/treat/reads_R2.fasta"),
-        peaks="results/{run_id}/treat/planted_peaks.bed",
-        peak_intervals="results/{run_id}/treat/planted_peak_intervals.bed",
+        r1=temp(result_path("{run_id}", "treat", "reads_R1.fasta")),
+        r2=temp(result_path("{run_id}", "treat", "reads_R2.fasta")),
+        peaks=result_path("{run_id}", "treat", "planted_peaks.bed"),
+        peak_intervals=result_path("{run_id}", "treat", "planted_peak_intervals.bed"),
         pmf=pmf_output("treat"),
     params:
         cov=lambda wc: find_row(wc.run_id)["coverage_treat"],
