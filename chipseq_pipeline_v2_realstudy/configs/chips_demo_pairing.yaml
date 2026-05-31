@@ -1,0 +1,47 @@
+study_ids:
+  - encode_skn1_celegans_l1
+  - geo_gse67028_celegans_h3k9me2_adult
+
+coverage_treat:
+  - 5
+
+coverage_ctrl:
+  - 4
+
+seed:
+  - 11
+
+fragment_length:
+  - 150
+
+read_length:
+  - 38
+
+aligners:
+  - bowtie2
+
+peakcaller_list:
+  - macs2
+
+macs2_mode:
+  - narrow
+  - broad
+
+params_table: "metadata/chips_demo_pairing_run_table.csv"
+enable_alignment_peakcalling_targets: false
+enable_ingest_peakcalling_targets: false
+enable_chips_targets: false
+enable_chips_ontology_targets: false
+realstudy_require_local_inputs: true
+
+chips:
+  binary: "chips"
+  study_ids:
+    - encode_skn1_celegans_l1
+    - geo_gse67028_celegans_h3k9me2_adult
+  peak_score_column: 5
+  numcopies_histone: 25
+  numcopies_tf: 1000
+  threads: 4
+  ontology:
+    peak_score_column: 5
