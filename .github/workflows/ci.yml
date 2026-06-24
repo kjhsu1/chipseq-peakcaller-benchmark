@@ -23,15 +23,17 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          pip install pytest
+          pip install pytest pandas numpy scipy pyyaml
 
       - name: Run pytest and generate report
         run: |
           mkdir -p reports
-          pytest -q --junitxml=reports/pytest-results.xml
+          for project in chipseq_pipeline_v2 chipseq_pipeline_v2_realstudy; do
+            (cd "$project" && pytest -q tests --junitxml=../reports/"${project}"-pytest-results.xml)
+          done
 
       - name: Upload test report artifact
         uses: actions/upload-artifact@v4
         with:
           name: pytest-results
-          path: reports/pytest-results.xml
+          path: reports/
