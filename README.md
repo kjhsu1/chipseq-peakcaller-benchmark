@@ -1,5 +1,7 @@
 # ChIP-seq Simulation and Benchmarking Framework
 
+![CI](https://github.com/kjhsu1/chipseq-peakcaller-benchmark/actions/workflows/ci.yml/badge.svg)
+
 > Project Note: This work was originally initiated as a collaborative effort involving three members of the Korf Lab. However, the comprehensive design, implementation, and refinement of the framework presented here are the results of my individual development. The contents of `chipseq_pipeline_v2` represent the primary, up to date workflow and the culmination of my independent research and engineering effort.
 > 
 
