@@ -1,0 +1,54 @@
+# Realstudy v2 empirical-control overlay. Nothing runs unless an operator invokes Snakemake.
+
+enable_realstudy_v2_targets: true
+enable_realstudy_v2_analysis_targets: true
+enable_realstudy_v2_figure_targets: true
+realstudy_require_local_inputs: true
+
+realstudy_v2:
+  output_root: "analysis_outputs/realstudy_v2"
+  assembly: "ce11"
+  genome_size_bp: 100286401
+  normalization_fragment_length_bp: 150
+  control_coverages_x: [0.5, 1, 2, 4, 8, 16, 32]
+  seeds: [11, 23, 37]
+  minimum_eligible_control_fragments: 21394432
+  sampling_algorithm_version: "sha256-rg-qname-v1"
+  reference_fasta: "references/ce11/genome.fa"
+  genome_annotation_gff: "references/ce11/genes.gff3"
+  bowtie2_index: "indexes/ce11/bowtie2_index/ce11"
+  threads: 8
+  macs2:
+    genome_size: 100286401
+    keep_dup: "all"
+    qvalue: 0.05
+    broad_cutoff: 0.1
+  overlap_thresholds: [0.0, 0.1, 0.5]
+  sufficiency:
+    minimum_anchor_retention: 0.90
+    minimum_query_concordance: 0.90
+    minimum_base_jaccard: 0.80
+    minimum_peak_count_ratio: 0.90
+    maximum_peak_count_ratio: 1.10
+    maximum_next_depth_retention_gain: 0.02
+    minimum_passing_seeds: 2
+  manifests:
+    publications: "manifests/realstudy_v2_publications.csv"
+    experiments: "manifests/realstudy_v2_experiments.csv"
+    files: "manifests/realstudy_v2_files.csv"
+    selection_audit: "manifests/realstudy_v2_selection_audit.csv"
+  studies:
+    encode_ceh27_young_adult:
+      label: "modERN ceh-27 young adult"
+      signal_class: "narrow"
+      macs2_mode: "narrow"
+      treatment_files: [ENCFF077SJJ, ENCFF577WJY]
+      control_files: [ENCFF800SHI, ENCFF364NJX]
+      publication_id: "modern_resource"
+    geo_h3k9me2_fer1_adult:
+      label: "GSE67028 fer-1 H3K9me2 adult"
+      signal_class: "broad"
+      macs2_mode: "broad"
+      treatment_files: [SRR1917669, SRR1917670]
+      control_files: [SRR1917671]
+      publication_id: "guo_h3k9me2"

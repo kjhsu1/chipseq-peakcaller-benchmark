@@ -44,6 +44,10 @@ enable_alignment_peakcalling_targets: false
 enable_ingest_peakcalling_targets: false
 enable_chips_targets: false
 enable_chips_ontology_targets: false
+enable_realstudy_v2_targets: false
+enable_realstudy_v2_analysis_targets: false
+enable_realstudy_v2_figure_targets: false
+realstudy_v2_output_root: ""
 realstudy_require_local_inputs: true
 params_table: "metadata/prototype_run_table.csv"
 

@@ -11,6 +11,8 @@ dependencies:
   - pandas
   - numpy
   - scipy
+  - matplotlib
+  - pysam
   - statsmodels
   - bowtie2
   - samtools

@@ -9,7 +9,12 @@ from scripts.realstudy_manifest_lib import (
     load_study_selection,
     validate_selection_table,
 )
-from scripts.realstudy_sampling_lib import build_run_table_rows, load_observed_depths
+from scripts.realstudy_sampling_lib import (
+    build_realstudy_v2_run_rows,
+    build_run_table_rows,
+    coverage_label,
+    load_observed_depths,
+)
 
 
 SELECTION_PATH = Path("manifests/study_selection.yaml")
@@ -61,6 +66,15 @@ RUNS = load_runs()
 RUN_BY_ID = {row["run_id"]: row for row in RUNS}
 DATA_MANIFEST = load_data_manifest()
 OBSERVED_STUDIES = load_observed_studies()
+V2_CONFIG = config.get("realstudy_v2", {})
+V2_RUNS = build_realstudy_v2_run_rows(V2_CONFIG) if V2_CONFIG else []
+V2_RUN_BY_ID = {row["run_id"]: row for row in V2_RUNS}
+V2_FILES = (
+    pd.read_csv(V2_CONFIG["manifests"]["files"], dtype=str).fillna("").to_dict(orient="records")
+    if V2_CONFIG and Path(V2_CONFIG["manifests"]["files"]).exists()
+    else []
+)
+V2_FILE_BY_ID = {row["file_id"]: row for row in V2_FILES}
 
 
 def find_row(run_id):
@@ -187,6 +201,22 @@ def study_assembly(study_id):
     return "unknown"
 
 
+def v2_root():
+    return config.get("realstudy_v2_output_root") or V2_CONFIG.get("output_root", "analysis_outputs/realstudy_v2")
+
+
+def v2_file_ids():
+    return sorted(V2_FILE_BY_ID)
+
+
+def v2_sampled_runs():
+    return [row for row in V2_RUNS if row["run_type"] == "control_subsample"]
+
+
+def v2_peak_targets():
+    return [f"{v2_root()}/peaks/{row['run_id']}/peaks.bed" for row in V2_RUNS]
+
+
 include: "rules/ingest_real_data.smk"
 include: "rules/build_reference_intensity.smk"
 include: "rules/simulation.smk"
@@ -194,6 +224,8 @@ include: "rules/alignment.smk"
 include: "rules/peakcalling.smk"
 include: "rules/chips_simulation.smk"
 include: "rules/ontology_analysis.smk"
+include: "rules/realstudy_v2_downsampling.smk"
+include: "rules/realstudy_v2_analysis.smk"
 
 
 def default_targets():
@@ -210,6 +242,12 @@ def default_targets():
         targets.extend(chips_peak_targets())
     if config_bool("enable_chips_ontology_targets", False):
         targets.extend(chips_ontology_targets())
+    if config_bool("enable_realstudy_v2_targets", False):
+        targets.extend(v2_peak_targets())
+    if config_bool("enable_realstudy_v2_analysis_targets", False):
+        targets.append(f"{v2_root()}/database/realstudy_v2.sqlite")
+    if config_bool("enable_realstudy_v2_figure_targets", False):
+        targets.append(f"{v2_root()}/validation/final_integrity_report.json")
     return targets
 
 

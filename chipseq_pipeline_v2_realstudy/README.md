@@ -1,6 +1,9 @@
 # Chipseq Pipeline Realstudy
 
-This sibling pipeline is the prototype real-study-conditioned benchmark track.
+This sibling pipeline contains two intentionally separate tracks:
+
+- the legacy ChIPs-conditioned benchmark retained for reproducibility; and
+- **Realstudy v2**, an empirical matched-control depth study with no ChIPs dependency.
 
 Execution notes:
 
@@ -29,6 +32,36 @@ Current scope:
 Key docs:
 
 - `docs/chips_realsim_workflow.md`
+- `docs/realstudy_v2_design.md`
+- `docs/realstudy_v2_runbook.md`
+- `docs/realstudy_v2_database_schema.md`
+- `docs/realstudy_v2_figure_specification.md`
+
+## Realstudy v2
+
+Realstudy v2 holds each pooled real treatment BAM fixed, creates exact nested
+subsets of its matched real input-control BAM at 0.5×–32×, calls MACS2 peaks,
+and measures stability relative to the full-control call. The full-control call
+is a workflow-relative anchor, not biological truth. Seeds quantify
+computational sampling uncertainty, not biological replication.
+
+The default config keeps Realstudy v2 disabled, so legacy commands are
+unchanged. Future operators should stage the seven registry-listed FASTQs and
+the ce11 FASTA/Bowtie2/GFF assets, then inspect the future DAG with:
+
+```bash
+./run_realstudy_v2_local.sh
+```
+
+After staging, execute locally only when resources permit:
+
+```bash
+MODE=run CORES=8 ./run_realstudy_v2_local.sh
+```
+
+This branch was authored code-only: no real FASTQs were downloaded and no
+alignment, downsampling, peak calling, test suite, or scientific analysis was
+executed while implementing it.
 
 Production validation command:
 

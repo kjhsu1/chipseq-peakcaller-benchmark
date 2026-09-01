@@ -2,11 +2,132 @@
 
 """Imports"""
 
+import hashlib
 from pathlib import Path
 
 import pandas as pd
 
 """Functions"""
+
+
+REALSTUDY_V2_ALGORITHM_VERSION = "sha256-rg-qname-v1"
+
+
+def eligible_alignment(record) -> bool:
+    """Return whether a BAM record is mapped, primary, and QC-passing."""
+    return not (
+        record.is_unmapped
+        or record.is_secondary
+        or record.is_supplementary
+        or record.is_qcfail
+    )
+
+
+def fragment_identifier(record) -> str:
+    """Return stable read-group plus query-name identity for single or paired reads."""
+    read_group = record.get_tag("RG") if record.has_tag("RG") else "NO_RG"
+    return f"{read_group}\x1f{record.query_name}"
+
+
+def fragment_rank_digest(version: str, checksum: str, seed: int, identifier: str) -> str:
+    """Return deterministic SHA-256 rank material for one fragment."""
+    payload = "\x1e".join([version, checksum.lower(), str(seed), identifier]).encode()
+    return hashlib.sha256(payload).hexdigest()
+
+
+def coverage_label(value: float | int) -> str:
+    """Return a filesystem-safe control-coverage label."""
+    return f"{format_run_id_value(value)}x"
+
+
+def target_fragments(genome_size_bp: int, fragment_length_bp: int, coverage: float) -> int:
+    """Return the locked nearest-integer fragment target for one coverage."""
+    return int(round((float(genome_size_bp) * float(coverage)) / float(fragment_length_bp)))
+
+
+def build_realstudy_v2_run_rows(design: dict) -> list[dict]:
+    """Expand the empirical two-study design into 42 samples and two anchors."""
+    genome_size_bp = int(design["genome_size_bp"])
+    fragment_length_bp = int(design["normalization_fragment_length_bp"])
+    coverages = [float(value) for value in design["control_coverages_x"]]
+    seeds = [int(value) for value in design["seeds"]]
+    studies = design["studies"]
+    rows = []
+    for study_id, study in studies.items():
+        anchor_id = f"{study_id}__full_control_anchor"
+        common = {
+            "study_id": study_id,
+            "signal_class": study["signal_class"],
+            "macs2_mode": study["macs2_mode"],
+            "treatment_parent_id": f"{study_id}__treatment_parent",
+            "control_parent_id": f"{study_id}__control_parent",
+            "reference_run_id": anchor_id,
+            "assembly": design["assembly"],
+            "genome_size_bp": genome_size_bp,
+            "normalization_fragment_length_bp": fragment_length_bp,
+            "peakcaller": "macs2",
+        }
+        rows.append(
+            {
+                **common,
+                "run_id": anchor_id,
+                "matched_block_id": f"{study_id}__anchor_block",
+                "run_type": "full_control_anchor",
+                "seed": "",
+                "control_coverage_x": "full",
+                "requested_control_fragments": "",
+                "control_subsample_id": "",
+            }
+        )
+        for seed in seeds:
+            block_id = f"{study_id}__seed_{seed}"
+            for coverage in coverages:
+                label = coverage_label(coverage)
+                rows.append(
+                    {
+                        **common,
+                        "run_id": f"{study_id}__control_{label}__seed_{seed}",
+                        "matched_block_id": block_id,
+                        "run_type": "control_subsample",
+                        "seed": seed,
+                        "control_coverage_x": coverage,
+                        "requested_control_fragments": target_fragments(
+                            genome_size_bp, fragment_length_bp, coverage
+                        ),
+                        "control_subsample_id": f"{study_id}__control_{label}__seed_{seed}",
+                    }
+                )
+    return rows
+
+
+def audit_realstudy_v2_design(rows: list[dict], design: dict) -> dict:
+    """Validate the locked run expansion and return a compact design audit."""
+    anchors = [row for row in rows if row["run_type"] == "full_control_anchor"]
+    sampled = [row for row in rows if row["run_type"] == "control_subsample"]
+    expected_studies = len(design["studies"])
+    expected_depths = len(design["control_coverages_x"])
+    expected_seeds = len(design["seeds"])
+    expected_sampled = expected_studies * expected_depths * expected_seeds
+    run_ids = [row["run_id"] for row in rows]
+    if len(rows) != expected_sampled + expected_studies:
+        raise ValueError("Realstudy v2 must expand to exactly 42 sampled calls and two anchors.")
+    if len(sampled) != expected_sampled or len(anchors) != expected_studies:
+        raise ValueError("Realstudy v2 run types do not match the locked design.")
+    if len(set(run_ids)) != len(run_ids):
+        raise ValueError("Realstudy v2 run identifiers are not unique.")
+    maximum_target = max(int(row["requested_control_fragments"]) for row in sampled)
+    if maximum_target != int(design["minimum_eligible_control_fragments"]):
+        raise ValueError("Maximum target and parent-library preflight threshold disagree.")
+    return {
+        "studies": expected_studies,
+        "control_depths": expected_depths,
+        "seeds": expected_seeds,
+        "sampled_peak_calls": len(sampled),
+        "anchor_peak_calls": len(anchors),
+        "total_peak_calls": len(rows),
+        "maximum_target_fragments": maximum_target,
+        "status": "valid",
+    }
 
 
 def format_run_id_value(value: float | int) -> str:
